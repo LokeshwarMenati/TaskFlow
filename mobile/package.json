@@ -5,7 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "start": "react-native start",
+    "start": "metro start",
     "test": "jest",
     "lint": "tsc --noEmit"
   },
@@ -26,6 +26,7 @@
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@babel/runtime": "^7.26.0",
+    "@react-native-community/cli": "^15.0.1",
     "@react-native/babel-preset": "^0.76.5",
     "@react-native/metro-config": "^0.76.5",
     "@react-native/typescript-config": "^0.76.5",
