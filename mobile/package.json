@@ -1,0 +1,41 @@
+{
+  "name": "TaskFlowMobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "test": "jest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "@react-native-community/datetimepicker": "^8.2.0",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.10.1",
+    "@reduxjs/toolkit": "^2.5.0",
+    "axios": "^1.7.9",
+    "react": "18.3.1",
+    "react-native": "0.76.5",
+    "react-native-safe-area-context": "^4.14.1",
+    "react-native-screens": "^3.35.0",
+    "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/runtime": "^7.26.0",
+    "@react-native/babel-preset": "^0.76.5",
+    "@react-native/metro-config": "^0.76.5",
+    "@react-native/typescript-config": "^0.76.5",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^18.3.18",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.14",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
