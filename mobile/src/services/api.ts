@@ -33,7 +33,7 @@ export const initApiBaseUrl = async (): Promise<string> => {
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: currentBaseUrl,
-  timeout: 10000,
+  timeout: 3500,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
