@@ -39,7 +39,12 @@ Thumbs.db
 mobile/android/.gradle/
 mobile/android/app/build/
 mobile/android/build/
+mobile/android/local.properties
 mobile/ios/Pods/
 mobile/ios/build/
 *.xcworkspace
 *.xcuserdatad
+*.keystore
+local.properties
+.snapshots/
+

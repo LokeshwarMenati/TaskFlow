@@ -15,20 +15,104 @@ The project consists of a decoupled architecture with a Node.js/Express TypeScri
 
 ## 📑 Table of Contents
 
-1. [Project Overview & Key Features](#-project-overview--key-features)
-2. [Technology Stack](#-technology-stack)
-3. [System Architecture](#-system-architecture)
-4. [Folder Structure](#-folder-structure)
-5. [Prerequisites](#-prerequisites)
-6. [Backend Setup & Execution](#-backend-setup--execution)
-7. [Environment Variables](#-environment-variables)
-8. [Mobile Setup & Android Execution](#-mobile-setup--android-execution)
-9. [API Documentation](#-api-documentation)
-10. [Authentication Flow & Security](#-authentication-flow--security)
-11. [Composite Sort Algorithm & Scoring Weights](#-composite-sort-algorithm--scoring-weights)
-12. [Postman Collection](#-postman-collection)
-13. [Testing & Verification](#-testing--verification)
-14. [Troubleshooting](#-troubleshooting)
+1. [⚡ Quick Start: How to Run the Project (Line-by-Line)](#-quick-start-how-to-run-the-project-line-by-line)
+2. [Project Overview & Key Features](#-project-overview--key-features)
+3. [Technology Stack](#-technology-stack)
+4. [System Architecture](#-system-architecture)
+5. [Folder Structure](#-folder-structure)
+6. [Prerequisites](#-prerequisites)
+7. [Backend Setup & Execution](#-backend-setup--execution)
+8. [Environment Variables](#-environment-variables)
+9. [Mobile Setup & Android Execution](#-mobile-setup--android-execution)
+10. [API Documentation](#-api-documentation)
+11. [Authentication Flow & Security](#-authentication-flow--security)
+12. [Composite Sort Algorithm & Scoring Weights](#-composite-sort-algorithm--scoring-weights)
+13. [Postman Collection](#-postman-collection)
+14. [Testing & Verification](#-testing--verification)
+15. [Troubleshooting](#-troubleshooting)
+
+---
+
+## ⚡ Quick Start: How to Run the Project (Line-by-Line)
+
+You can launch TaskFlow either with the **One-Click Automated Script** or by running the **Manual Line-by-Line Commands** in separate terminals.
+
+### 📦 Application Artifacts & APK
+- **Pre-built Release/Debug APK**: [`dist/TaskFlow-App.apk`](./dist/TaskFlow-App.apk)
+- **Public Google Drive Link**: `[PASTE_GOOGLE_DRIVE_PUBLIC_LINK_HERE]`
+
+---
+
+### Option A: One-Click Automated Startup (Recommended)
+
+Open a PowerShell terminal at the project root directory (`e:\Assignment`) and execute:
+
+```powershell
+.\run-on-laptop.ps1
+```
+
+> **Automated Workflow:**
+> 1. Configures `ANDROID_HOME`, `JAVA_HOME`, and Android platform-tools in your environment.
+> 2. Verifies MongoDB and starts the Backend REST API server on `http://localhost:5000`.
+> 3. Starts the Metro Bundler on `http://localhost:8081`.
+> 4. Boots the Android Emulator (`Medium_Phone_API_35`) and waits for Android OS boot completion.
+> 5. Binds reverse ports via ADB (`tcp:5000` & `tcp:8081`).
+> 6. Builds and launches the TaskFlow React Native application on the device.
+
+---
+
+### Option B: Manual Line-by-Line Execution
+
+If you prefer running each service individually, open **3 separate terminal windows**:
+
+#### 🟢 Terminal 1: Backend REST API Server
+```powershell
+# 1. Verify MongoDB is running (Default port 27017)
+# (If installed as a Windows service, it runs automatically. Otherwise: net start MongoDB)
+
+# 2. Change directory into the backend project
+cd backend
+
+# 3. Install npm dependencies (first time only)
+npm install
+
+# 4. Verify environment configuration (.env)
+# If .env is missing: copy .env.example .env
+
+# 5. Start the backend development server
+npm run dev
+```
+*Backend is ready when you see: `TaskFlow Backend Server running in [development] mode on http://localhost:5000`*
+
+#### 🟡 Terminal 2: Metro JavaScript Bundler
+```powershell
+# 1. Change directory into the mobile project
+cd mobile
+
+# 2. Install npm dependencies (first time only)
+npm install
+
+# 3. Start the Metro JavaScript packager
+npx metro start --host 0.0.0.0 --port 8081
+```
+*Metro is ready when you see: `Welcome to Metro v0.81.5`*
+
+#### 🔵 Terminal 3: Android Emulator & Application Launch
+```powershell
+# 1. Launch the Android Emulator GUI window
+& "$env:LOCALAPPDATA\Android\Sdk\emulator\emulator.exe" -avd Medium_Phone_API_35
+
+# 2. Establish reverse port forwarding (routes emulator traffic to your laptop)
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" reverse tcp:5000 tcp:5000
+& "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe" reverse tcp:8081 tcp:8081
+
+# 3. Change directory into the mobile project
+cd mobile
+
+# 4. Build and install the application onto the running emulator
+npx react-native run-android
+```
+*App is ready when you see: `BUILD SUCCESSFUL` -> `TaskFlow launched successfully!` on your emulator screen.*
 
 ---
 
