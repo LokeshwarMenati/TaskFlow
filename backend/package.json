@@ -2,6 +2,7 @@
   "name": "taskflow-backend",
   "version": "1.0.0",
   "description": "TaskFlow full-stack task management backend REST API",
+  "author": "Lokeshwar Menati",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

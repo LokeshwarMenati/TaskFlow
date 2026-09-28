@@ -335,6 +335,13 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
             />
           )
         }
+        ListFooterComponent={
+          filteredTasks.length > 0 ? (
+            <View style={styles.footerContainer}>
+              <Text style={styles.footerText}>TaskFlow • Developed with ❤️ by Lokeshwar Menati</Text>
+            </View>
+          ) : null
+        }
       />
 
       {/* Animated Floating Action Button (FAB) */}
@@ -587,5 +594,17 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '400',
     lineHeight: 34,
+  },
+  footerContainer: {
+    paddingVertical: spacing.xl,
+    paddingBottom: spacing.xxxl * 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

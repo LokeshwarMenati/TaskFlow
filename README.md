@@ -7,6 +7,8 @@
 [![React Native](https://img.shields.io/badge/Mobile-React%20Native%20CLI-61DAFB.svg)](https://reactnative.dev/)
 [![Redux Toolkit](https://img.shields.io/badge/State-Redux%20Toolkit-purple.svg)](https://redux-toolkit.js.org/)
 
+> 👨‍💻 **Developed by Lokeshwar Menati**
+
 TaskFlow is a production-grade, full-stack Android task management application designed with a **productivity-first aesthetic**, **strict user-scoped multi-tenancy**, and an intelligent **Composite Urgency Ranking Algorithm**.
 
 The project consists of a decoupled architecture with a Node.js/Express TypeScript backend powered by MongoDB and a pure React Native CLI TypeScript mobile application with Redux Toolkit and React Navigation.
@@ -591,4 +593,4 @@ npm test
 
 ---
 
-Developed with ❤️ for the TaskFlow Full-Stack Engineering Assessment.
+Developed with ❤️ by **Lokeshwar Menati** for the TaskFlow Full-Stack Engineering Assessment.

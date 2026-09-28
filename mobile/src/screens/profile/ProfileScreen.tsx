@@ -372,6 +372,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           {/* Technical Info */}
           <View style={styles.techInfoCard}>
             <Text style={styles.techTitle}>TaskFlow Architecture</Text>
+            <Text style={styles.authorBadge}>Developed with ❤️ by Lokeshwar Menati</Text>
             <Text style={styles.techSub}>
               React Native 0.76 • Redux Toolkit • TypeScript{'\n'}
               Node.js Express API • MongoDB • Universal Offline-First Engine
@@ -646,6 +647,13 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  authorBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 4,
+    marginBottom: 2,
   },
   techSub: {
     fontSize: 11,

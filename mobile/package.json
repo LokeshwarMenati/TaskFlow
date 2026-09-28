@@ -1,6 +1,7 @@
 {
   "name": "TaskFlowMobile",
   "version": "1.0.0",
+  "author": "Lokeshwar Menati",
   "private": true,
   "scripts": {
     "android": "react-native run-android",

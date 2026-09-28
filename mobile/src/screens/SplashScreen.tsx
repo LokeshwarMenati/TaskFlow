@@ -31,6 +31,8 @@ export const SplashScreen: React.FC = () => {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Initializing workspace...</Text>
       </View>
+
+      <Text style={styles.developerText}>Developed by Lokeshwar Menati</Text>
     </View>
   );
 };
@@ -83,5 +85,13 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: '#94A3B8',
     fontWeight: '500',
+  },
+  developerText: {
+    position: 'absolute',
+    bottom: spacing.xxl,
+    fontSize: typography.fontSize.xs,
+    color: '#94A3B8',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });
