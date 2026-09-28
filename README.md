@@ -39,8 +39,9 @@ The project consists of a decoupled architecture with a Node.js/Express TypeScri
 
 You can launch TaskFlow either with the **One-Click Automated Script** or by running the **Manual Line-by-Line Commands** in separate terminals.
 
-### 📦 Application Artifacts & APK
+### 📦 Application Artifacts & Demo
 - **Pre-built Release/Debug APK**: [`dist/TaskFlow-App.apk`](./dist/TaskFlow-App.apk)
+- **App Walkthrough Demo Video**: [`dist/TaskFlow-Demo-Video.mp4`](./dist/TaskFlow-Demo-Video.mp4)
 - **Public Google Drive Link**: `[PASTE_GOOGLE_DRIVE_PUBLIC_LINK_HERE]`
 
 ---
