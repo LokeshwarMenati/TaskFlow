@@ -1,19 +1,22 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Animated,
 } from 'react-native';
 import { Task } from '../types/task.types';
 import { PriorityBadge } from './PriorityBadge';
 import { colors } from '../theme/colors';
 import { borderRadius, spacing, typography, shadows } from '../theme/tokens';
 import { formatDate, formatTime, getRelativeDeadlineLabel } from '../utils/dateUtils';
+import { calculateCompositeScore } from '../utils/sorting';
 
 interface TaskCardProps {
   task: Task;
+  index?: number;
   onPress: () => void;
   onToggleComplete: () => void;
   onDelete: () => void;
@@ -21,6 +24,7 @@ interface TaskCardProps {
 
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
+  index = 0,
   onPress,
   onToggleComplete,
   onDelete,
@@ -30,8 +34,93 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   // Calculate overdue: only if status !== 'completed' AND deadline < now
   const deadlineMs = new Date(task.deadline).getTime();
   const isOverdue = !isCompleted && !isNaN(deadlineMs) && deadlineMs < Date.now();
-
   const deadlineInfo = getRelativeDeadlineLabel(task.deadline, task.status);
+
+  // Animations
+  const cardScale = useRef(new Animated.Value(1)).current;
+  const checkScale = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Staggered cascade entrance
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(Math.min(index * 45, 300)),
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [index, fadeAnim, slideAnim]);
+
+  // Breathing pulse for high priority or overdue tasks
+  useEffect(() => {
+    if (!isCompleted && (task.priority === 'high' || isOverdue)) {
+      const pulseLoop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.06,
+            duration: 1100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1100,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseLoop.start();
+      return () => pulseLoop.stop();
+    }
+  }, [isCompleted, task.priority, isOverdue, pulseAnim]);
+
+  // Press tactile physics
+  const handlePressIn = () => {
+    Animated.spring(cardScale, {
+      toValue: 0.98,
+      tension: 100,
+      friction: 6,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(cardScale, {
+      toValue: 1,
+      tension: 100,
+      friction: 6,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Pop animation on checkmark
+  const handleToggle = () => {
+    Animated.sequence([
+      Animated.timing(checkScale, {
+        toValue: 1.35,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(checkScale, {
+        toValue: 1,
+        tension: 80,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    onToggleComplete();
+  };
 
   const confirmDelete = () => {
     Alert.alert(
@@ -45,99 +134,129 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     );
   };
 
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={onPress}
-      style={[
-        styles.card,
-        isCompleted && styles.completedCard,
-        isOverdue && styles.overdueCard,
-      ]}
-    >
-      {/* Top Header: Checkbox + Title + Delete button */}
-      <View style={styles.headerRow}>
-        {/* Completion Checkbox */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onToggleComplete}
-          style={[styles.checkbox, isCompleted && styles.checkboxCompleted]}
-        >
-          {isCompleted && <Text style={styles.checkmark}>✓</Text>}
-        </TouchableOpacity>
+  // Calculate composite rank score (showcase assessment algorithm)
+  const compositeScore = !isCompleted
+    ? Math.max(0, Math.round(calculateCompositeScore(task) * 100))
+    : null;
 
-        {/* Title & Category */}
-        <View style={styles.titleContainer}>
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }, { scale: cardScale }],
+      }}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={[
+          styles.card,
+          isCompleted && styles.completedCard,
+          isOverdue && styles.overdueCard,
+        ]}
+      >
+        {/* Top Header: Checkbox + Title + Category + Delete */}
+        <View style={styles.headerRow}>
+          {/* Animated Checkbox */}
+          <Animated.View style={{ transform: [{ scale: checkScale }] }}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleToggle}
+              style={[styles.checkbox, isCompleted && styles.checkboxCompleted]}
+            >
+              {isCompleted && <Text style={styles.checkmark}>✓</Text>}
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Title & Category Tag */}
+          <View style={styles.titleContainer}>
+            <Text
+              numberOfLines={2}
+              style={[styles.title, isCompleted && styles.completedTitle]}
+            >
+              {task.title}
+            </Text>
+            <View style={styles.tagRow}>
+              {Boolean(task.category) && (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{task.category}</Text>
+                </View>
+              )}
+              {compositeScore !== null && (
+                <View style={styles.scoreBadge}>
+                  <Text style={styles.scoreBadgeText}>⚡ Rank {compositeScore}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Delete Action */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={confirmDelete}
+            style={styles.deleteButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.deleteIcon}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Description Preview */}
+        {Boolean(task.description) && (
           <Text
             numberOfLines={2}
-            style={[styles.title, isCompleted && styles.completedTitle]}
+            style={[styles.description, isCompleted && styles.completedDescription]}
           >
-            {task.title}
+            {task.description}
           </Text>
-          {Boolean(task.category) && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{task.category}</Text>
-            </View>
-          )}
-        </View>
+        )}
 
-        {/* Delete Quick Action */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={confirmDelete}
-          style={styles.deleteButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.deleteIcon}>✕</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.divider} />
 
-      {/* Description Preview (if present) */}
-      {Boolean(task.description) && (
-        <Text
-          numberOfLines={2}
-          style={[styles.description, isCompleted && styles.completedDescription]}
-        >
-          {task.description}
-        </Text>
-      )}
-
-      {/* Divider */}
-      <View style={styles.divider} />
-
-      {/* Footer Info: Priority, Scheduled Time, Deadline, Overdue Alert */}
-      <View style={styles.footerRow}>
-        <View style={styles.footerLeft}>
-          <PriorityBadge priority={task.priority} size="sm" />
-          {isOverdue && (
-            <View style={styles.overdueBadge}>
-              <Text style={styles.overdueBadgeText}>OVERDUE</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.datesContainer}>
-          <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Scheduled:</Text>
-            <Text style={styles.dateValue}>
-              {formatDate(task.dateTime)} • {formatTime(task.dateTime)}
-            </Text>
-          </View>
-          <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Deadline:</Text>
-            <Text
-              style={[
-                styles.dateValue,
-                isOverdue && styles.overdueDateValue,
-                isCompleted && styles.completedDateValue,
-              ]}
+        {/* Footer: Priority Badge, Dates & Overdue */}
+        <View style={styles.footerRow}>
+          <View style={styles.footerLeft}>
+            <Animated.View
+              style={
+                !isCompleted && (task.priority === 'high' || isOverdue)
+                  ? { transform: [{ scale: pulseAnim }] }
+                  : undefined
+              }
             >
-              {deadlineInfo.text}
-            </Text>
+              <PriorityBadge priority={task.priority} size="sm" />
+            </Animated.View>
+            {isOverdue && (
+              <View style={styles.overdueBadge}>
+                <Text style={styles.overdueBadgeText}>OVERDUE</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.datesContainer}>
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>Scheduled:</Text>
+              <Text style={styles.dateValue}>
+                {formatDate(task.dateTime)} • {formatTime(task.dateTime)}
+              </Text>
+            </View>
+            <View style={styles.dateItem}>
+              <Text style={styles.dateLabel}>Deadline:</Text>
+              <Text
+                style={[
+                  styles.dateValue,
+                  isOverdue && styles.overdueDateValue,
+                  isCompleted && styles.completedDateValue,
+                ]}
+              >
+                {deadlineInfo.text}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -154,26 +273,27 @@ const styles = StyleSheet.create({
   completedCard: {
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
-    opacity: 0.75,
+    opacity: 0.8,
   },
   overdueCard: {
     borderColor: '#FECDD3',
-    backgroundColor: '#FFFBFB',
+    backgroundColor: '#FFF5F5',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    marginBottom: spacing.xs,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 7,
     borderWidth: 2,
-    borderColor: '#94A3B8',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
     marginRight: spacing.md,
+    marginTop: 2,
     backgroundColor: '#FFFFFF',
   },
   checkboxCompleted: {
@@ -184,65 +304,83 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
-    lineHeight: 14,
   },
   titleContainer: {
     flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
+    marginRight: spacing.sm,
   },
   title: {
-    fontSize: typography.fontSize.md,
-    fontWeight: '600',
+    fontSize: typography.fontSize.base,
+    fontWeight: '700',
     color: '#0F172A',
-    lineHeight: typography.lineHeight.md,
-    marginRight: spacing.sm,
+    lineHeight: 22,
   },
   completedTitle: {
     textDecorationLine: 'line-through',
     color: '#94A3B8',
   },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    gap: 6,
+  },
   categoryBadge: {
     backgroundColor: '#EEF2FF',
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-    alignSelf: 'center',
+    borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
   },
   categoryText: {
-    fontSize: typography.fontSize.xs - 1,
-    color: colors.primary,
+    fontSize: 11,
     fontWeight: '600',
+    color: colors.primary,
+  },
+  scoreBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    alignSelf: 'flex-start',
+  },
+  scoreBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B45309',
   },
   deleteButton: {
     padding: spacing.xs,
     marginLeft: spacing.xs,
   },
   deleteIcon: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#94A3B8',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   description: {
-    marginTop: spacing.xs + 2,
-    marginLeft: 22 + spacing.md,
     fontSize: typography.fontSize.sm,
     color: '#64748B',
-    lineHeight: typography.lineHeight.sm,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+    marginLeft: 36,
   },
   completedDescription: {
+    textDecorationLine: 'line-through',
     color: '#CBD5E1',
   },
   divider: {
     height: 1,
     backgroundColor: '#F1F5F9',
-    marginVertical: spacing.md,
+    marginVertical: spacing.sm,
   },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   footerLeft: {
     flexDirection: 'row',
@@ -250,18 +388,17 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   overdueBadge: {
-    backgroundColor: colors.overdue.bg,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    paddingHorizontal: spacing.xs + 2,
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: spacing.sm,
     paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    marginLeft: spacing.xs,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
   },
   overdueBadgeText: {
-    color: colors.overdue.text,
-    fontSize: typography.fontSize.xs - 2,
+    fontSize: 10,
     fontWeight: '800',
+    color: '#DC2626',
     letterSpacing: 0.5,
   },
   datesContainer: {
@@ -270,20 +407,20 @@ const styles = StyleSheet.create({
   dateItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 1,
+    gap: 4,
   },
   dateLabel: {
-    fontSize: typography.fontSize.xs - 1,
+    fontSize: 11,
     color: '#94A3B8',
-    marginRight: 4,
+    fontWeight: '500',
   },
   dateValue: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
+    fontSize: 11,
     color: '#475569',
+    fontWeight: '600',
   },
   overdueDateValue: {
-    color: colors.overdue.badge,
+    color: '#DC2626',
     fontWeight: '700',
   },
   completedDateValue: {

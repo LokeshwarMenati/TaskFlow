@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation.types';
@@ -18,8 +19,6 @@ import { CustomButton } from '../../components/CustomButton';
 import { colors } from '../../theme/colors';
 import { borderRadius, spacing, typography } from '../../theme/tokens';
 import { isValidEmail } from '../../utils/validation';
-import { ServerSettingsModal } from '../../components/ServerSettingsModal';
-import { getApiBaseUrl } from '../../services/api';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -34,8 +33,77 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const [serverModalVisible, setServerModalVisible] = useState(false);
-  const [currentServerUrl, setCurrentServerUrl] = useState(getApiBaseUrl());
+  // Animation values
+  const badgeScale = useRef(new Animated.Value(0.3)).current;
+  const headerFade = useRef(new Animated.Value(0)).current;
+  const headerSlide = useRef(new Animated.Value(-20)).current;
+  const formFade = useRef(new Animated.Value(0)).current;
+  const formSlide = useRef(new Animated.Value(25)).current;
+  const footerFade = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Staggered entrance animation
+    Animated.parallel([
+      Animated.spring(badgeScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+      Animated.timing(headerFade, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(headerSlide, {
+        toValue: 0,
+        tension: 40,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.delay(120),
+        Animated.parallel([
+          Animated.timing(formFade, {
+            toValue: 1,
+            duration: 450,
+            useNativeDriver: true,
+          }),
+          Animated.spring(formSlide, {
+            toValue: 0,
+            tension: 45,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+      Animated.sequence([
+        Animated.delay(260),
+        Animated.timing(footerFade, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+
+    // Gentle ambient floating loop on emblem
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -5,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [badgeScale, headerFade, headerSlide, formFade, formSlide, footerFade, floatAnim]);
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -75,32 +143,50 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Brand Header */}
-        <View style={styles.header}>
-          <View style={styles.brandBadge}>
+        {/* Brand Header with Staggered Entrance */}
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: headerFade,
+              transform: [{ translateY: headerSlide }],
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.brandBadge,
+              {
+                transform: [
+                  { scale: badgeScale },
+                  { translateY: floatAnim },
+                ],
+              },
+            ]}
+          >
             <Text style={styles.brandIcon}>✓</Text>
-          </View>
+          </Animated.View>
           <Text style={styles.title}>Welcome to TaskFlow</Text>
           <Text style={styles.subtitle}>Sign in to manage and prioritize your tasks</Text>
-        </View>
+        </Animated.View>
 
         {/* Global API Error Banner */}
         {Boolean(error) && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerText}>{error}</Text>
-            {error?.includes('Network Error') && (
-              <TouchableOpacity
-                style={styles.errorFixButton}
-                onPress={() => setServerModalVisible(true)}
-              >
-                <Text style={styles.errorFixButtonText}>⚙️ Configure Server Address</Text>
-              </TouchableOpacity>
-            )}
           </View>
         )}
 
-        {/* Form Fields */}
-        <View style={styles.formCard}>
+        {/* Animated Form Fields */}
+        <Animated.View
+          style={[
+            styles.formCard,
+            {
+              opacity: formFade,
+              transform: [{ translateY: formSlide }],
+            },
+          ]}
+        >
           <CustomInput
             label="Email Address"
             placeholder="name@example.com"
@@ -145,22 +231,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             loading={loading}
             style={styles.submitButton}
           />
-        </View>
-
-        {/* Server Connection Bar */}
-        <TouchableOpacity
-          style={styles.serverBar}
-          onPress={() => setServerModalVisible(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.serverBarText} numberOfLines={1}>
-            ⚙️ Server: <Text style={styles.serverBarUrl}>{currentServerUrl}</Text>
-          </Text>
-          <Text style={styles.serverBarAction}>Change</Text>
-        </TouchableOpacity>
+        </Animated.View>
 
         {/* Navigation to Register */}
-        <View style={styles.footerRow}>
+        <Animated.View style={[styles.footerRow, { opacity: footerFade }]}>
           <Text style={styles.footerText}>Don't have an account? </Text>
           <TouchableOpacity
             onPress={() => {
@@ -170,14 +244,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Text style={styles.registerLink}>Create Account</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Server Settings Modal */}
-        <ServerSettingsModal
-          visible={serverModalVisible}
-          onClose={() => setServerModalVisible(false)}
-          onSaved={(newUrl) => setCurrentServerUrl(newUrl)}
-        />
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -199,17 +266,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   brandBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
+    width: 68,
+    height: 68,
+    borderRadius: 22,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.base,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   brandIcon: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
   },
   title: {
@@ -217,6 +289,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
@@ -238,30 +311,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  errorFixButton: {
-    marginTop: spacing.sm,
-    backgroundColor: '#DC2626',
-    paddingVertical: spacing.xs + 2,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.sm,
-    alignSelf: 'center',
-  },
-  errorFixButtonText: {
-    color: '#FFFFFF',
-    fontSize: typography.fontSize.xs,
-    fontWeight: '700',
-  },
   formCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: borderRadius.xl,
     padding: spacing.xl,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
   },
   rememberRow: {
     flexDirection: 'row',
@@ -270,9 +330,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: '#94A3B8',
     alignItems: 'center',
@@ -286,7 +346,7 @@ const styles = StyleSheet.create({
   },
   checkboxCheck: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
   rememberText: {
@@ -297,39 +357,10 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.xs,
   },
-  serverBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  serverBarText: {
-    flex: 1,
-    fontSize: typography.fontSize.xs,
-    color: '#4B5563',
-    fontWeight: '500',
-    marginRight: spacing.xs,
-  },
-  serverBarUrl: {
-    color: '#4F46E5',
-    fontWeight: '700',
-  },
-  serverBarAction: {
-    fontSize: typography.fontSize.xs,
-    color: '#4F46E5',
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: spacing.xl,
+    marginTop: spacing.xxl,
   },
   footerText: {
     fontSize: typography.fontSize.base,

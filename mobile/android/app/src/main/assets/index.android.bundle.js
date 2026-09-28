@@ -68746,11 +68746,41 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       _useState2 = (0, _slicedToArray2.default)(_useState, 2),
       sortModalVisible = _useState2[0],
       setSortModalVisible = _useState2[1];
+    var _useState3 = (0, _react.useState)(''),
+      _useState4 = (0, _slicedToArray2.default)(_useState3, 2),
+      searchQuery = _useState4[0],
+      setSearchQuery = _useState4[1];
+
+    // Animated values
+    var progressAnim = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var fabScale = (0, _react.useRef)(new _reactNative.Animated.Value(1)).current;
 
     // Fetch tasks on mount and when filters/sort change
     (0, _react.useEffect)(function () {
       dispatch((0, _$$_REQUIRE(_dependencyMap[6]).fetchTasks)());
     }, [dispatch, filters.status, filters.priority, filters.category, sort]);
+    var pendingCount = (0, _react.useMemo)(function () {
+      return tasks.filter(function (t) {
+        return t.status === 'pending';
+      }).length;
+    }, [tasks]);
+    var completedCount = (0, _react.useMemo)(function () {
+      return tasks.filter(function (t) {
+        return t.status === 'completed';
+      }).length;
+    }, [tasks]);
+    var totalCount = tasks.length;
+    var completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
+    var completionPercentage = Math.round(completionRatio * 100);
+
+    // Smoothly animate progress bar when completion ratio changes
+    (0, _react.useEffect)(function () {
+      _reactNative.Animated.timing(progressAnim, {
+        toValue: completionRatio,
+        duration: 650,
+        useNativeDriver: false
+      }).start();
+    }, [completionRatio, progressAnim]);
     var handleRefresh = function handleRefresh() {
       dispatch((0, _$$_REQUIRE(_dependencyMap[6]).fetchTasks)());
     };
@@ -68787,7 +68817,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       return Array.from(cats);
     }, [tasks]);
 
-    // Client-side filtering when backend already returned tasks
+    // Client-side filtering & search
     var filteredTasks = (0, _react.useMemo)(function () {
       return tasks.filter(function (t) {
         if (filters.status !== 'all' && t.status !== filters.status) return false;
@@ -68795,9 +68825,16 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
         if (filters.category !== 'all' && t.category.toLowerCase() !== filters.category.toLowerCase()) {
           return false;
         }
+        if (searchQuery.trim()) {
+          var q = searchQuery.toLowerCase().trim();
+          var matchTitle = t.title.toLowerCase().includes(q);
+          var matchDesc = (t.description || '').toLowerCase().includes(q);
+          var matchCat = (t.category || '').toLowerCase().includes(q);
+          if (!matchTitle && !matchDesc && !matchCat) return false;
+        }
         return true;
       });
-    }, [tasks, filters]);
+    }, [tasks, filters, searchQuery]);
     var sortLabelMap = {
       composite: '⚡ Smart Urgency',
       deadline: '⏳ Deadline',
@@ -68805,12 +68842,22 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       dateTime: '📅 Scheduled',
       createdAt: '🕒 Created'
     };
-    var pendingCount = tasks.filter(function (t) {
-      return t.status === 'pending';
-    }).length;
-    var completedCount = tasks.filter(function (t) {
-      return t.status === 'completed';
-    }).length;
+    var handleFabPressIn = function handleFabPressIn() {
+      _reactNative.Animated.spring(fabScale, {
+        toValue: 0.9,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true
+      }).start();
+    };
+    var handleFabPressOut = function handleFabPressOut() {
+      _reactNative.Animated.spring(fabScale, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true
+      }).start();
+    };
     return /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.SafeAreaView, {
       style: styles.container,
       children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
@@ -68838,40 +68885,91 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
           })
         })]
       }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-        style: styles.statsBanner,
+        style: styles.statsCard,
         children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.statItem,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.statNumber,
-            children: pendingCount
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.statLabel,
-            children: "Pending"
+          style: styles.statsBanner,
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+            style: styles.statItem,
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              style: styles.statNumber,
+              children: pendingCount
+            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              style: styles.statLabel,
+              children: "Pending"
+            })]
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+            style: styles.statDivider
+          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+            style: styles.statItem,
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              style: [styles.statNumber, {
+                color: _$$_REQUIRE(_dependencyMap[8]).colors.success
+              }],
+              children: completedCount
+            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              style: styles.statLabel,
+              children: "Completed"
+            })]
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+            style: styles.statDivider
+          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+            style: styles.statItem,
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              style: [styles.statNumber, {
+                color: '#0F172A'
+              }],
+              children: totalCount
+            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              style: styles.statLabel,
+              children: "Total"
+            })]
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-          style: styles.statDivider
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.statItem,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.statNumber,
-            children: completedCount
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.statLabel,
-            children: "Completed"
-          })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-          style: styles.statDivider
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.statItem,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.statNumber,
-            children: tasks.length
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.statLabel,
-            children: "Total"
+        }), totalCount > 0 && /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+          style: styles.progressContainer,
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+            style: styles.progressBarTrack,
+            children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+              style: [styles.progressBarFill, {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%']
+                })
+              }]
+            })
+          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
+            style: styles.progressText,
+            children: [completionPercentage, "% completed (", completedCount, "/", totalCount, ")"]
           })]
         })]
-      }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[8]).FilterBar, {
+      }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+        style: styles.searchContainer,
+        children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+          style: styles.searchIcon,
+          children: "\uD83D\uDD0D"
+        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TextInput, {
+          style: styles.searchInput,
+          placeholder: "Search tasks by title, note, or tag...",
+          placeholderTextColor: "#94A3B8",
+          value: searchQuery,
+          onChangeText: setSearchQuery,
+          autoCapitalize: "none",
+          autoCorrect: false
+        }), searchQuery.length > 0 && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
+          onPress: function onPress() {
+            return setSearchQuery('');
+          },
+          hitSlop: {
+            top: 10,
+            bottom: 10,
+            left: 10,
+            right: 10
+          },
+          children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+            style: styles.searchClearIcon,
+            children: "\u2715"
+          })
+        })]
+      }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[9]).FilterBar, {
         statusFilter: filters.status,
         priorityFilter: filters.priority,
         selectedCategory: filters.category,
@@ -68910,15 +69008,23 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
             children: "\u25BC"
           })]
         })]
+      }), sort === 'composite' && totalCount > 0 && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+        style: styles.algorithmBanner,
+        children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+          style: styles.algorithmBannerText,
+          children: "\u26A1 Ranked by 50% Deadline Urgency + 35% Priority + 15% Schedule"
+        })
       }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.FlatList, {
         data: filteredTasks,
         keyExtractor: function keyExtractor(item) {
           return item._id;
         },
         renderItem: function renderItem(_ref2) {
-          var item = _ref2.item;
-          return /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[9]).TaskCard, {
+          var item = _ref2.item,
+            index = _ref2.index;
+          return /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[10]).TaskCard, {
             task: item,
+            index: index,
             onPress: function onPress() {
               return navigation.navigate('TaskDetail', {
                 taskId: item._id
@@ -68936,27 +69042,36 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
         refreshControl: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.RefreshControl, {
           refreshing: loading,
           onRefresh: handleRefresh,
-          colors: [_$$_REQUIRE(_dependencyMap[10]).colors.primary]
+          colors: [_$$_REQUIRE(_dependencyMap[8]).colors.primary]
         }),
         ListEmptyComponent: loading ? /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[11]).LoadingIndicator, {
           message: "Fetching your tasks..."
         }) : /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[12]).EmptyState, {
-          title: filters.status !== 'all' || filters.priority !== 'all' ? 'No matching tasks' : 'No tasks yet',
-          subtitle: filters.status !== 'all' || filters.priority !== 'all' ? 'Try changing or clearing your active filters.' : 'Create your first task and stay organized.',
+          title: searchQuery ? 'No tasks found' : filters.status !== 'all' || filters.priority !== 'all' ? 'No matching tasks' : 'No tasks yet',
+          subtitle: searchQuery ? `No tasks matched "${searchQuery}". Try a different keyword.` : filters.status !== 'all' || filters.priority !== 'all' ? 'Try changing or clearing your active filters.' : 'Create your first task and stay organized.',
           actionText: "Create Task",
           onAction: function onAction() {
             return navigation.navigate('AddEditTask', {});
           }
         })
-      }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-        style: styles.fab,
-        activeOpacity: 0.85,
-        onPress: function onPress() {
-          return navigation.navigate('AddEditTask', {});
-        },
-        children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-          style: styles.fabIcon,
-          children: "+"
+      }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+        style: [styles.fabContainer, {
+          transform: [{
+            scale: fabScale
+          }]
+        }],
+        children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
+          style: styles.fab,
+          activeOpacity: 0.9,
+          onPressIn: handleFabPressIn,
+          onPressOut: handleFabPressOut,
+          onPress: function onPress() {
+            return navigation.navigate('AddEditTask', {});
+          },
+          children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+            style: styles.fabIcon,
+            children: "+"
+          })
         })
       }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[13]).SortModal, {
         visible: sortModalVisible,
@@ -68987,17 +69102,19 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     greeting: {
       fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xl,
       fontWeight: '800',
-      color: '#0F172A'
+      color: '#0F172A',
+      letterSpacing: -0.3
     },
     userEmail: {
       fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xs,
       color: '#64748B',
-      marginTop: 1
+      marginTop: 1,
+      fontWeight: '500'
     },
     logoutButton: {
       paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
       paddingVertical: 6,
-      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.sm,
+      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.full,
       backgroundColor: '#F1F5F9'
     },
     logoutText: {
@@ -69005,31 +69122,32 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       fontWeight: '600',
       color: '#475569'
     },
-    statsBanner: Object.assign({
-      flexDirection: 'row',
+    statsCard: Object.assign({
       backgroundColor: '#FFFFFF',
       marginHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.base,
       marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.sm,
       borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.lg,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.lg,
-      alignItems: 'center',
-      justifyContent: 'space-around',
+      padding: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
       borderWidth: 1,
       borderColor: '#E2E8F0'
     }, _$$_REQUIRE(_dependencyMap[14]).shadows.sm),
+    statsBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-around'
+    },
     statItem: {
       alignItems: 'center'
     },
     statNumber: {
       fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xl,
       fontWeight: '800',
-      color: _$$_REQUIRE(_dependencyMap[10]).colors.primary
+      color: _$$_REQUIRE(_dependencyMap[8]).colors.primary
     },
     statLabel: {
       fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xs,
       color: '#64748B',
-      fontWeight: '500',
+      fontWeight: '600',
       marginTop: 2
     },
     statDivider: {
@@ -69037,12 +69155,64 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       height: 24,
       backgroundColor: '#E2E8F0'
     },
+    progressContainer: {
+      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
+      paddingTop: _$$_REQUIRE(_dependencyMap[14]).spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: '#F1F5F9'
+    },
+    progressBarTrack: {
+      height: 6,
+      backgroundColor: '#E2E8F0',
+      borderRadius: 3,
+      overflow: 'hidden'
+    },
+    progressBarFill: {
+      height: '100%',
+      backgroundColor: _$$_REQUIRE(_dependencyMap[8]).colors.success,
+      borderRadius: 3
+    },
+    progressText: {
+      fontSize: 11,
+      color: '#64748B',
+      fontWeight: '600',
+      marginTop: 4,
+      textAlign: 'right'
+    },
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#FFFFFF',
+      marginHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.base,
+      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.sm,
+      paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
+      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.lg,
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      height: 44
+    },
+    searchIcon: {
+      fontSize: 14,
+      marginRight: _$$_REQUIRE(_dependencyMap[14]).spacing.sm
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.sm,
+      color: '#0F172A',
+      paddingVertical: 0
+    },
+    searchClearIcon: {
+      fontSize: 14,
+      color: '#94A3B8',
+      padding: _$$_REQUIRE(_dependencyMap[14]).spacing.xs
+    },
     sortRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.base,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[14]).spacing.sm
+      paddingVertical: _$$_REQUIRE(_dependencyMap[14]).spacing.xs,
+      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.xs
     },
     resultsCount: {
       fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xs,
@@ -69069,22 +69239,48 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       color: '#64748B',
       marginLeft: 6
     },
+    algorithmBanner: {
+      backgroundColor: '#FEF3C7',
+      marginHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.base,
+      marginBottom: _$$_REQUIRE(_dependencyMap[14]).spacing.xs,
+      paddingVertical: 4,
+      paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
+      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.sm,
+      borderWidth: 1,
+      borderColor: '#FDE68A'
+    },
+    algorithmBannerText: {
+      fontSize: 11,
+      color: '#92400E',
+      fontWeight: '600',
+      textAlign: 'center'
+    },
     listContent: {
       paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.base,
       paddingTop: _$$_REQUIRE(_dependencyMap[14]).spacing.xs,
-      paddingBottom: 90 // Leave space for FAB
+      paddingBottom: 95
     },
-    fab: Object.assign({
+    fabContainer: {
       position: 'absolute',
       bottom: _$$_REQUIRE(_dependencyMap[14]).spacing.xxl,
-      right: _$$_REQUIRE(_dependencyMap[14]).spacing.xl,
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: _$$_REQUIRE(_dependencyMap[10]).colors.primary,
+      right: _$$_REQUIRE(_dependencyMap[14]).spacing.xl
+    },
+    fab: {
+      width: 62,
+      height: 62,
+      borderRadius: 31,
+      backgroundColor: _$$_REQUIRE(_dependencyMap[8]).colors.primary,
       alignItems: 'center',
-      justifyContent: 'center'
-    }, _$$_REQUIRE(_dependencyMap[14]).shadows.lg),
+      justifyContent: 'center',
+      shadowColor: _$$_REQUIRE(_dependencyMap[8]).colors.primary,
+      shadowOffset: {
+        width: 0,
+        height: 8
+      },
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      elevation: 8
+    },
     fabIcon: {
       color: '#FFFFFF',
       fontSize: 32,
@@ -69092,7 +69288,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       lineHeight: 34
     }
   });
-},795,[1,40,63,2,111,635,622,598,796,797,735,800,801,803,736]);
+},795,[1,40,63,2,111,635,622,598,735,796,797,800,801,803,736]);
 __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, exports, _dependencyMap) {
   var _interopRequireDefault = _$$_REQUIRE(_dependencyMap[0]);
   Object.defineProperty(exports, "__esModule", {
@@ -69225,16 +69421,18 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
   });
 },796,[1,63,2,111,736,735]);
 __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, exports, _dependencyMap) {
-  var _interopRequireDefault = _$$_REQUIRE(_dependencyMap[0]);
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
   exports.TaskCard = undefined;
-  var _react = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[1]));
-  var _reactNative = _$$_REQUIRE(_dependencyMap[2]);
-  var _jsxRuntime = _$$_REQUIRE(_dependencyMap[3]);
+  var _react = _interopRequireWildcard(_$$_REQUIRE(_dependencyMap[0]));
+  var _reactNative = _$$_REQUIRE(_dependencyMap[1]);
+  var _jsxRuntime = _$$_REQUIRE(_dependencyMap[2]);
+  function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function _interopRequireWildcard(e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
   var TaskCard = exports.TaskCard = function TaskCard(_ref) {
     var task = _ref.task,
+      _ref$index = _ref.index,
+      index = _ref$index === undefined ? 0 : _ref$index,
       onPress = _ref.onPress,
       onToggleComplete = _ref.onToggleComplete,
       onDelete = _ref.onDelete;
@@ -69243,7 +69441,80 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     // Calculate overdue: only if status !== 'completed' AND deadline < now
     var deadlineMs = new Date(task.deadline).getTime();
     var isOverdue = !isCompleted && !isNaN(deadlineMs) && deadlineMs < Date.now();
-    var deadlineInfo = (0, _$$_REQUIRE(_dependencyMap[4]).getRelativeDeadlineLabel)(task.deadline, task.status);
+    var deadlineInfo = (0, _$$_REQUIRE(_dependencyMap[3]).getRelativeDeadlineLabel)(task.deadline, task.status);
+
+    // Animations
+    var cardScale = (0, _react.useRef)(new _reactNative.Animated.Value(1)).current;
+    var checkScale = (0, _react.useRef)(new _reactNative.Animated.Value(1)).current;
+    var fadeAnim = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var slideAnim = (0, _react.useRef)(new _reactNative.Animated.Value(20)).current;
+    var pulseAnim = (0, _react.useRef)(new _reactNative.Animated.Value(1)).current;
+
+    // Staggered cascade entrance
+    (0, _react.useEffect)(function () {
+      _reactNative.Animated.sequence([_reactNative.Animated.delay(Math.min(index * 45, 300)), _reactNative.Animated.parallel([_reactNative.Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true
+      }), _reactNative.Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true
+      })])]).start();
+    }, [index, fadeAnim, slideAnim]);
+
+    // Breathing pulse for high priority or overdue tasks
+    (0, _react.useEffect)(function () {
+      if (!isCompleted && (task.priority === 'high' || isOverdue)) {
+        var pulseLoop = _reactNative.Animated.loop(_reactNative.Animated.sequence([_reactNative.Animated.timing(pulseAnim, {
+          toValue: 1.06,
+          duration: 1100,
+          useNativeDriver: true
+        }), _reactNative.Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1100,
+          useNativeDriver: true
+        })]));
+        pulseLoop.start();
+        return function () {
+          return pulseLoop.stop();
+        };
+      }
+    }, [isCompleted, task.priority, isOverdue, pulseAnim]);
+
+    // Press tactile physics
+    var handlePressIn = function handlePressIn() {
+      _reactNative.Animated.spring(cardScale, {
+        toValue: 0.98,
+        tension: 100,
+        friction: 6,
+        useNativeDriver: true
+      }).start();
+    };
+    var handlePressOut = function handlePressOut() {
+      _reactNative.Animated.spring(cardScale, {
+        toValue: 1,
+        tension: 100,
+        friction: 6,
+        useNativeDriver: true
+      }).start();
+    };
+
+    // Pop animation on checkmark
+    var handleToggle = function handleToggle() {
+      _reactNative.Animated.sequence([_reactNative.Animated.timing(checkScale, {
+        toValue: 1.35,
+        duration: 100,
+        useNativeDriver: true
+      }), _reactNative.Animated.spring(checkScale, {
+        toValue: 1,
+        tension: 80,
+        friction: 4,
+        useNativeDriver: true
+      })]).start();
+      onToggleComplete();
+    };
     var confirmDelete = function confirmDelete() {
       _reactNative.Alert.alert('Delete Task', `Are you sure you want to delete "${task.title}"?`, [{
         text: 'Cancel',
@@ -69256,91 +69527,129 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
         cancelable: true
       });
     };
-    return /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.TouchableOpacity, {
-      activeOpacity: 0.9,
-      onPress: onPress,
-      style: [styles.card, isCompleted && styles.completedCard, isOverdue && styles.overdueCard],
-      children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-        style: styles.headerRow,
-        children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-          activeOpacity: 0.7,
-          onPress: onToggleComplete,
-          style: [styles.checkbox, isCompleted && styles.checkboxCompleted],
-          children: isCompleted && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.checkmark,
-            children: "\u2713"
-          })
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.titleContainer,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            numberOfLines: 2,
-            style: [styles.title, isCompleted && styles.completedTitle],
-            children: task.title
-          }), Boolean(task.category) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-            style: styles.categoryBadge,
-            children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.categoryText,
-              children: task.category
-            })
-          })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-          activeOpacity: 0.7,
-          onPress: confirmDelete,
-          style: styles.deleteButton,
-          hitSlop: {
-            top: 10,
-            bottom: 10,
-            left: 10,
-            right: 10
-          },
-          children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.deleteIcon,
-            children: "\u2715"
-          })
-        })]
-      }), Boolean(task.description) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-        numberOfLines: 2,
-        style: [styles.description, isCompleted && styles.completedDescription],
-        children: task.description
-      }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-        style: styles.divider
-      }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-        style: styles.footerRow,
+
+    // Calculate composite rank score (showcase assessment algorithm)
+    var compositeScore = !isCompleted ? Math.max(0, Math.round((0, _$$_REQUIRE(_dependencyMap[4]).calculateCompositeScore)(task) * 100)) : null;
+    return /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+      style: {
+        opacity: fadeAnim,
+        transform: [{
+          translateY: slideAnim
+        }, {
+          scale: cardScale
+        }]
+      },
+      children: /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.TouchableOpacity, {
+        activeOpacity: 1,
+        onPress: onPress,
+        onPressIn: handlePressIn,
+        onPressOut: handlePressOut,
+        style: [styles.card, isCompleted && styles.completedCard, isOverdue && styles.overdueCard],
         children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.footerLeft,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[5]).PriorityBadge, {
-            priority: task.priority,
-            size: "sm"
-          }), isOverdue && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-            style: styles.overdueBadge,
+          style: styles.headerRow,
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+            style: {
+              transform: [{
+                scale: checkScale
+              }]
+            },
+            children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
+              activeOpacity: 0.7,
+              onPress: handleToggle,
+              style: [styles.checkbox, isCompleted && styles.checkboxCompleted],
+              children: isCompleted && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+                style: styles.checkmark,
+                children: "\u2713"
+              })
+            })
+          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+            style: styles.titleContainer,
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+              numberOfLines: 2,
+              style: [styles.title, isCompleted && styles.completedTitle],
+              children: task.title
+            }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+              style: styles.tagRow,
+              children: [Boolean(task.category) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+                style: styles.categoryBadge,
+                children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+                  style: styles.categoryText,
+                  children: task.category
+                })
+              }), compositeScore !== null && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+                style: styles.scoreBadge,
+                children: /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
+                  style: styles.scoreBadgeText,
+                  children: ["\u26A1 Rank ", compositeScore]
+                })
+              })]
+            })]
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
+            activeOpacity: 0.7,
+            onPress: confirmDelete,
+            style: styles.deleteButton,
+            hitSlop: {
+              top: 10,
+              bottom: 10,
+              left: 10,
+              right: 10
+            },
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.overdueBadgeText,
-              children: "OVERDUE"
+              style: styles.deleteIcon,
+              children: "\u2715"
             })
           })]
+        }), Boolean(task.description) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+          numberOfLines: 2,
+          style: [styles.description, isCompleted && styles.completedDescription],
+          children: task.description
+        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+          style: styles.divider
         }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.datesContainer,
+          style: styles.footerRow,
           children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-            style: styles.dateItem,
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.dateLabel,
-              children: "Scheduled:"
-            }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
-              style: styles.dateValue,
-              children: [(0, _$$_REQUIRE(_dependencyMap[4]).formatDate)(task.dateTime), " \u2022 ", (0, _$$_REQUIRE(_dependencyMap[4]).formatTime)(task.dateTime)]
+            style: styles.footerLeft,
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+              style: !isCompleted && (task.priority === 'high' || isOverdue) ? {
+                transform: [{
+                  scale: pulseAnim
+                }]
+              } : undefined,
+              children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[5]).PriorityBadge, {
+                priority: task.priority,
+                size: "sm"
+              })
+            }), isOverdue && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+              style: styles.overdueBadge,
+              children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+                style: styles.overdueBadgeText,
+                children: "OVERDUE"
+              })
             })]
           }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-            style: styles.dateItem,
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.dateLabel,
-              children: "Deadline:"
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: [styles.dateValue, isOverdue && styles.overdueDateValue, isCompleted && styles.completedDateValue],
-              children: deadlineInfo.text
+            style: styles.datesContainer,
+            children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+              style: styles.dateItem,
+              children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+                style: styles.dateLabel,
+                children: "Scheduled:"
+              }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
+                style: styles.dateValue,
+                children: [(0, _$$_REQUIRE(_dependencyMap[3]).formatDate)(task.dateTime), " \u2022 ", (0, _$$_REQUIRE(_dependencyMap[3]).formatTime)(task.dateTime)]
+              })]
+            }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+              style: styles.dateItem,
+              children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+                style: styles.dateLabel,
+                children: "Deadline:"
+              }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+                style: [styles.dateValue, isOverdue && styles.overdueDateValue, isCompleted && styles.completedDateValue],
+                children: deadlineInfo.text
+              })]
             })]
           })]
         })]
-      })]
+      })
     });
   };
   var styles = _reactNative.StyleSheet.create({
@@ -69355,26 +69664,27 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     completedCard: {
       backgroundColor: '#F8FAFC',
       borderColor: '#E2E8F0',
-      opacity: 0.75
+      opacity: 0.8
     },
     overdueCard: {
       borderColor: '#FECDD3',
-      backgroundColor: '#FFFBFB'
+      backgroundColor: '#FFF5F5'
     },
     headerRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start'
+      alignItems: 'flex-start',
+      marginBottom: _$$_REQUIRE(_dependencyMap[6]).spacing.xs
     },
     checkbox: {
-      width: 22,
-      height: 22,
-      borderRadius: 6,
+      width: 24,
+      height: 24,
+      borderRadius: 7,
       borderWidth: 2,
-      borderColor: '#94A3B8',
+      borderColor: '#CBD5E1',
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 2,
       marginRight: _$$_REQUIRE(_dependencyMap[6]).spacing.md,
+      marginTop: 2,
       backgroundColor: '#FFFFFF'
     },
     checkboxCompleted: {
@@ -69384,66 +69694,84 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     checkmark: {
       color: '#FFFFFF',
       fontSize: 13,
-      fontWeight: '800',
-      lineHeight: 14
+      fontWeight: '800'
     },
     titleContainer: {
       flex: 1,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center'
+      marginRight: _$$_REQUIRE(_dependencyMap[6]).spacing.sm
     },
     title: {
-      fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.md,
-      fontWeight: '600',
+      fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.base,
+      fontWeight: '700',
       color: '#0F172A',
-      lineHeight: _$$_REQUIRE(_dependencyMap[6]).typography.lineHeight.md,
-      marginRight: _$$_REQUIRE(_dependencyMap[6]).spacing.sm
+      lineHeight: 22
     },
     completedTitle: {
       textDecorationLine: 'line-through',
       color: '#94A3B8'
     },
+    tagRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      marginTop: 4,
+      gap: 6
+    },
     categoryBadge: {
       backgroundColor: '#EEF2FF',
       paddingHorizontal: _$$_REQUIRE(_dependencyMap[6]).spacing.sm,
       paddingVertical: 2,
-      borderRadius: _$$_REQUIRE(_dependencyMap[6]).borderRadius.sm,
-      alignSelf: 'center'
+      borderRadius: _$$_REQUIRE(_dependencyMap[6]).borderRadius.full,
+      alignSelf: 'flex-start'
     },
     categoryText: {
-      fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.xs - 1,
-      color: _$$_REQUIRE(_dependencyMap[7]).colors.primary,
-      fontWeight: '600'
+      fontSize: 11,
+      fontWeight: '600',
+      color: _$$_REQUIRE(_dependencyMap[7]).colors.primary
+    },
+    scoreBadge: {
+      backgroundColor: '#FEF3C7',
+      paddingHorizontal: _$$_REQUIRE(_dependencyMap[6]).spacing.sm,
+      paddingVertical: 2,
+      borderRadius: _$$_REQUIRE(_dependencyMap[6]).borderRadius.full,
+      alignSelf: 'flex-start'
+    },
+    scoreBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: '#B45309'
     },
     deleteButton: {
       padding: _$$_REQUIRE(_dependencyMap[6]).spacing.xs,
       marginLeft: _$$_REQUIRE(_dependencyMap[6]).spacing.xs
     },
     deleteIcon: {
-      fontSize: 16,
+      fontSize: 14,
       color: '#94A3B8',
-      fontWeight: '600'
+      fontWeight: '700'
     },
     description: {
-      marginTop: _$$_REQUIRE(_dependencyMap[6]).spacing.xs + 2,
-      marginLeft: 22 + _$$_REQUIRE(_dependencyMap[6]).spacing.md,
       fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.sm,
       color: '#64748B',
-      lineHeight: _$$_REQUIRE(_dependencyMap[6]).typography.lineHeight.sm
+      lineHeight: 20,
+      marginBottom: _$$_REQUIRE(_dependencyMap[6]).spacing.sm,
+      marginLeft: 36
     },
     completedDescription: {
+      textDecorationLine: 'line-through',
       color: '#CBD5E1'
     },
     divider: {
       height: 1,
       backgroundColor: '#F1F5F9',
-      marginVertical: _$$_REQUIRE(_dependencyMap[6]).spacing.md
+      marginVertical: _$$_REQUIRE(_dependencyMap[6]).spacing.sm
     },
     footerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: _$$_REQUIRE(_dependencyMap[6]).spacing.sm
     },
     footerLeft: {
       flexDirection: 'row',
@@ -69451,18 +69779,17 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       gap: _$$_REQUIRE(_dependencyMap[6]).spacing.xs
     },
     overdueBadge: {
-      backgroundColor: _$$_REQUIRE(_dependencyMap[7]).colors.overdue.bg,
-      borderWidth: 1,
-      borderColor: '#FCA5A5',
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[6]).spacing.xs + 2,
+      backgroundColor: '#FEE2E2',
+      paddingHorizontal: _$$_REQUIRE(_dependencyMap[6]).spacing.sm,
       paddingVertical: 2,
-      borderRadius: _$$_REQUIRE(_dependencyMap[6]).borderRadius.full,
-      marginLeft: _$$_REQUIRE(_dependencyMap[6]).spacing.xs
+      borderRadius: _$$_REQUIRE(_dependencyMap[6]).borderRadius.sm,
+      borderWidth: 1,
+      borderColor: '#FECDD3'
     },
     overdueBadgeText: {
-      color: _$$_REQUIRE(_dependencyMap[7]).colors.overdue.text,
-      fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.xs - 2,
+      fontSize: 10,
       fontWeight: '800',
+      color: '#DC2626',
       letterSpacing: 0.5
     },
     datesContainer: {
@@ -69471,27 +69798,27 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     dateItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginTop: 1
+      gap: 4
     },
     dateLabel: {
-      fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.xs - 1,
+      fontSize: 11,
       color: '#94A3B8',
-      marginRight: 4
+      fontWeight: '500'
     },
     dateValue: {
-      fontSize: _$$_REQUIRE(_dependencyMap[6]).typography.fontSize.xs,
-      fontWeight: '600',
-      color: '#475569'
+      fontSize: 11,
+      color: '#475569',
+      fontWeight: '600'
     },
     overdueDateValue: {
-      color: _$$_REQUIRE(_dependencyMap[7]).colors.overdue.badge,
+      color: '#DC2626',
       fontWeight: '700'
     },
     completedDateValue: {
       color: '#94A3B8'
     }
   });
-},797,[1,63,2,111,798,799,736,735]);
+},797,[63,2,111,798,624,799,736,735]);
 __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, exports, _dependencyMap) {
   Object.defineProperty(exports, "__esModule", {
     value: true
@@ -71855,14 +72182,57 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       _useState0 = (0, _slicedToArray2.default)(_useState9, 2),
       passwordError = _useState0[0],
       setPasswordError = _useState0[1];
-    var _useState1 = (0, _react.useState)(false),
-      _useState10 = (0, _slicedToArray2.default)(_useState1, 2),
-      serverModalVisible = _useState10[0],
-      setServerModalVisible = _useState10[1];
-    var _useState11 = (0, _react.useState)((0, _$$_REQUIRE(_dependencyMap[7]).getApiBaseUrl)()),
-      _useState12 = (0, _slicedToArray2.default)(_useState11, 2),
-      currentServerUrl = _useState12[0],
-      setCurrentServerUrl = _useState12[1];
+
+    // Animation values
+    var badgeScale = (0, _react.useRef)(new _reactNative.Animated.Value(0.3)).current;
+    var headerFade = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var headerSlide = (0, _react.useRef)(new _reactNative.Animated.Value(-20)).current;
+    var formFade = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var formSlide = (0, _react.useRef)(new _reactNative.Animated.Value(25)).current;
+    var footerFade = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var floatAnim = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    (0, _react.useEffect)(function () {
+      // Staggered entrance animation
+      _reactNative.Animated.parallel([_reactNative.Animated.spring(badgeScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 5,
+        useNativeDriver: true
+      }), _reactNative.Animated.timing(headerFade, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true
+      }), _reactNative.Animated.spring(headerSlide, {
+        toValue: 0,
+        tension: 40,
+        friction: 6,
+        useNativeDriver: true
+      }), _reactNative.Animated.sequence([_reactNative.Animated.delay(120), _reactNative.Animated.parallel([_reactNative.Animated.timing(formFade, {
+        toValue: 1,
+        duration: 450,
+        useNativeDriver: true
+      }), _reactNative.Animated.spring(formSlide, {
+        toValue: 0,
+        tension: 45,
+        friction: 7,
+        useNativeDriver: true
+      })])]), _reactNative.Animated.sequence([_reactNative.Animated.delay(260), _reactNative.Animated.timing(footerFade, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true
+      })])]).start();
+
+      // Gentle ambient floating loop on emblem
+      _reactNative.Animated.loop(_reactNative.Animated.sequence([_reactNative.Animated.timing(floatAnim, {
+        toValue: -5,
+        duration: 1800,
+        useNativeDriver: true
+      }), _reactNative.Animated.timing(floatAnim, {
+        toValue: 0,
+        duration: 1800,
+        useNativeDriver: true
+      })])).start();
+    }, [badgeScale, headerFade, headerSlide, formFade, formSlide, footerFade, floatAnim]);
     var validateForm = function validateForm() {
       var isValid = true;
       setEmailError(null);
@@ -71870,7 +72240,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       if (!email.trim()) {
         setEmailError('Email address is required');
         isValid = false;
-      } else if (!(0, _$$_REQUIRE(_dependencyMap[8]).isValidEmail)(email)) {
+      } else if (!(0, _$$_REQUIRE(_dependencyMap[7]).isValidEmail)(email)) {
         setEmailError('Please enter a valid email address');
         isValid = false;
       }
@@ -71882,10 +72252,10 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     };
     var handleLogin = /*#__PURE__*/function () {
       var _ref2 = (0, _asyncToGenerator2.default)(function* () {
-        if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[9]).clearAuthError)());
+        if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[8]).clearAuthError)());
         if (!validateForm()) return;
-        yield _$$_REQUIRE(_dependencyMap[10]).storageService.saveRememberMe(rememberMe);
-        dispatch((0, _$$_REQUIRE(_dependencyMap[9]).loginUser)({
+        yield _$$_REQUIRE(_dependencyMap[9]).storageService.saveRememberMe(rememberMe);
+        dispatch((0, _$$_REQUIRE(_dependencyMap[8]).loginUser)({
           email: email.trim(),
           password: password
         }));
@@ -71900,10 +72270,21 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       children: /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.ScrollView, {
         contentContainerStyle: styles.scrollContent,
         keyboardShouldPersistTaps: "handled",
-        children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.header,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-            style: styles.brandBadge,
+        children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Animated.View, {
+          style: [styles.header, {
+            opacity: headerFade,
+            transform: [{
+              translateY: headerSlide
+            }]
+          }],
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+            style: [styles.brandBadge, {
+              transform: [{
+                scale: badgeScale
+              }, {
+                translateY: floatAnim
+              }]
+            }],
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
               style: styles.brandIcon,
               children: "\u2713"
@@ -71915,24 +72296,20 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
             style: styles.subtitle,
             children: "Sign in to manage and prioritize your tasks"
           })]
-        }), Boolean(error) && /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+        }), Boolean(error) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
           style: styles.errorBanner,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+          children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
             style: styles.errorBannerText,
             children: error
-          }), (error == null ? undefined : error.includes('Network Error')) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-            style: styles.errorFixButton,
-            onPress: function onPress() {
-              return setServerModalVisible(true);
-            },
-            children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.errorFixButtonText,
-              children: "\u2699\uFE0F Configure Server Address"
-            })
-          })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.formCard,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[11]).CustomInput, {
+          })
+        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Animated.View, {
+          style: [styles.formCard, {
+            opacity: formFade,
+            transform: [{
+              translateY: formSlide
+            }]
+          }],
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[10]).CustomInput, {
             label: "Email Address",
             placeholder: "name@example.com",
             keyboardType: "email-address",
@@ -71943,7 +72320,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               if (emailError) setEmailError(null);
             },
             error: emailError
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[11]).CustomInput, {
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[10]).CustomInput, {
             label: "Password",
             placeholder: "Enter your password",
             isPassword: true,
@@ -71969,37 +72346,22 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               style: styles.rememberText,
               children: "Keep me signed in"
             })]
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[12]).CustomButton, {
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[11]).CustomButton, {
             title: "Sign In",
             onPress: handleLogin,
             loading: loading,
             style: styles.submitButton
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.TouchableOpacity, {
-          style: styles.serverBar,
-          onPress: function onPress() {
-            return setServerModalVisible(true);
-          },
-          activeOpacity: 0.7,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
-            style: styles.serverBarText,
-            numberOfLines: 1,
-            children: ["\u2699\uFE0F Server: ", /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.serverBarUrl,
-              children: currentServerUrl
-            })]
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.serverBarAction,
-            children: "Change"
-          })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.footerRow,
+        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Animated.View, {
+          style: [styles.footerRow, {
+            opacity: footerFade
+          }],
           children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
             style: styles.footerText,
             children: "Don't have an account? "
           }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
             onPress: function onPress() {
-              if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[9]).clearAuthError)());
+              if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[8]).clearAuthError)());
               navigation.navigate('Register');
             },
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
@@ -72007,14 +72369,6 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               children: "Create Account"
             })
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[13]).ServerSettingsModal, {
-          visible: serverModalVisible,
-          onClose: function onClose() {
-            return setServerModalVisible(false);
-          },
-          onSaved: function onSaved(newUrl) {
-            return setCurrentServerUrl(newUrl);
-          }
         })]
       })
     });
@@ -72026,161 +72380,128 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     },
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.xl,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[14]).spacing.xxxl,
+      paddingHorizontal: _$$_REQUIRE(_dependencyMap[12]).spacing.xl,
+      paddingVertical: _$$_REQUIRE(_dependencyMap[12]).spacing.xxxl,
       justifyContent: 'center'
     },
     header: {
       alignItems: 'center',
-      marginBottom: _$$_REQUIRE(_dependencyMap[14]).spacing.xxl
+      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.xxl
     },
     brandBadge: {
-      width: 60,
-      height: 60,
-      borderRadius: 18,
-      backgroundColor: _$$_REQUIRE(_dependencyMap[15]).colors.primary,
+      width: 68,
+      height: 68,
+      borderRadius: 22,
+      backgroundColor: _$$_REQUIRE(_dependencyMap[13]).colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: _$$_REQUIRE(_dependencyMap[14]).spacing.base
+      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.base,
+      shadowColor: _$$_REQUIRE(_dependencyMap[13]).colors.primary,
+      shadowOffset: {
+        width: 0,
+        height: 8
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 8
     },
     brandIcon: {
       color: '#FFFFFF',
-      fontSize: 32,
+      fontSize: 34,
       fontWeight: '800'
     },
     title: {
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xxl,
+      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.xxl,
       fontWeight: '800',
       color: '#0F172A',
-      textAlign: 'center'
+      textAlign: 'center',
+      letterSpacing: -0.5
     },
     subtitle: {
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.base,
+      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.base,
       color: '#64748B',
       textAlign: 'center',
-      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.xs
+      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.xs
     },
     errorBanner: {
       backgroundColor: '#FEE2E2',
       borderWidth: 1,
       borderColor: '#FCA5A5',
-      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.md,
-      padding: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
-      marginBottom: _$$_REQUIRE(_dependencyMap[14]).spacing.base
+      borderRadius: _$$_REQUIRE(_dependencyMap[12]).borderRadius.md,
+      padding: _$$_REQUIRE(_dependencyMap[12]).spacing.md,
+      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.base
     },
     errorBannerText: {
       color: '#DC2626',
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.sm,
+      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.sm,
       fontWeight: '600',
       textAlign: 'center'
     },
-    errorFixButton: {
-      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.sm,
-      backgroundColor: '#DC2626',
-      paddingVertical: _$$_REQUIRE(_dependencyMap[14]).spacing.xs + 2,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
-      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.sm,
-      alignSelf: 'center'
-    },
-    errorFixButtonText: {
-      color: '#FFFFFF',
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xs,
-      fontWeight: '700'
-    },
     formCard: {
       backgroundColor: '#FFFFFF',
-      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.xl,
-      padding: _$$_REQUIRE(_dependencyMap[14]).spacing.xl,
+      borderRadius: _$$_REQUIRE(_dependencyMap[12]).borderRadius.xl,
+      padding: _$$_REQUIRE(_dependencyMap[12]).spacing.xl,
       borderWidth: 1,
       borderColor: '#E2E8F0',
-      shadowColor: '#000',
+      shadowColor: '#64748B',
       shadowOffset: {
         width: 0,
-        height: 4
+        height: 10
       },
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 3
+      shadowOpacity: 0.08,
+      shadowRadius: 20,
+      elevation: 4
     },
     rememberRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: _$$_REQUIRE(_dependencyMap[14]).spacing.xl,
-      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.xs
+      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.xl,
+      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.xs
     },
     checkbox: {
-      width: 20,
-      height: 20,
-      borderRadius: 5,
+      width: 22,
+      height: 22,
+      borderRadius: 6,
       borderWidth: 2,
       borderColor: '#94A3B8',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: _$$_REQUIRE(_dependencyMap[14]).spacing.sm,
+      marginRight: _$$_REQUIRE(_dependencyMap[12]).spacing.sm,
       backgroundColor: '#FFFFFF'
     },
     checkboxActive: {
-      backgroundColor: _$$_REQUIRE(_dependencyMap[15]).colors.primary,
-      borderColor: _$$_REQUIRE(_dependencyMap[15]).colors.primary
+      backgroundColor: _$$_REQUIRE(_dependencyMap[13]).colors.primary,
+      borderColor: _$$_REQUIRE(_dependencyMap[13]).colors.primary
     },
     checkboxCheck: {
       color: '#FFFFFF',
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '800'
     },
     rememberText: {
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.sm,
+      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.sm,
       color: '#475569',
       fontWeight: '500'
     },
     submitButton: {
-      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.xs
-    },
-    serverBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: '#EEF2FF',
-      borderWidth: 1,
-      borderColor: '#C7D2FE',
-      borderRadius: _$$_REQUIRE(_dependencyMap[14]).borderRadius.md,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[14]).spacing.md,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[14]).spacing.sm,
-      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.lg
-    },
-    serverBarText: {
-      flex: 1,
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xs,
-      color: '#4B5563',
-      fontWeight: '500',
-      marginRight: _$$_REQUIRE(_dependencyMap[14]).spacing.xs
-    },
-    serverBarUrl: {
-      color: '#4F46E5',
-      fontWeight: '700'
-    },
-    serverBarAction: {
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.xs,
-      color: '#4F46E5',
-      fontWeight: '800',
-      textTransform: 'uppercase'
+      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.xs
     },
     footerRow: {
       flexDirection: 'row',
       justifyContent: 'center',
-      marginTop: _$$_REQUIRE(_dependencyMap[14]).spacing.xl
+      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.xxl
     },
     footerText: {
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.base,
+      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.base,
       color: '#64748B'
     },
     registerLink: {
-      fontSize: _$$_REQUIRE(_dependencyMap[14]).typography.fontSize.base,
+      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.base,
       fontWeight: '700',
-      color: _$$_REQUIRE(_dependencyMap[15]).colors.primary
+      color: _$$_REQUIRE(_dependencyMap[13]).colors.primary
     }
   });
-},826,[1,105,40,63,2,111,635,609,805,598,615,806,802,828,736,735]);
+},826,[1,105,40,63,2,111,635,805,598,615,806,802,736,735]);
 __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, exports, _dependencyMap) {
   var _interopRequireDefault = _$$_REQUIRE(_dependencyMap[0]);
   Object.defineProperty(exports, "__esModule", {
@@ -72224,14 +72545,57 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       _useState10 = (0, _slicedToArray2.default)(_useState1, 2),
       confirmError = _useState10[0],
       setConfirmError = _useState10[1];
-    var _useState11 = (0, _react.useState)(false),
-      _useState12 = (0, _slicedToArray2.default)(_useState11, 2),
-      serverModalVisible = _useState12[0],
-      setServerModalVisible = _useState12[1];
-    var _useState13 = (0, _react.useState)((0, _$$_REQUIRE(_dependencyMap[6]).getApiBaseUrl)()),
-      _useState14 = (0, _slicedToArray2.default)(_useState13, 2),
-      currentServerUrl = _useState14[0],
-      setCurrentServerUrl = _useState14[1];
+
+    // Animation values
+    var badgeScale = (0, _react.useRef)(new _reactNative.Animated.Value(0.3)).current;
+    var headerFade = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var headerSlide = (0, _react.useRef)(new _reactNative.Animated.Value(-20)).current;
+    var formFade = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var formSlide = (0, _react.useRef)(new _reactNative.Animated.Value(25)).current;
+    var footerFade = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    var floatAnim = (0, _react.useRef)(new _reactNative.Animated.Value(0)).current;
+    (0, _react.useEffect)(function () {
+      // Staggered entrance animation
+      _reactNative.Animated.parallel([_reactNative.Animated.spring(badgeScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 5,
+        useNativeDriver: true
+      }), _reactNative.Animated.timing(headerFade, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true
+      }), _reactNative.Animated.spring(headerSlide, {
+        toValue: 0,
+        tension: 40,
+        friction: 6,
+        useNativeDriver: true
+      }), _reactNative.Animated.sequence([_reactNative.Animated.delay(120), _reactNative.Animated.parallel([_reactNative.Animated.timing(formFade, {
+        toValue: 1,
+        duration: 450,
+        useNativeDriver: true
+      }), _reactNative.Animated.spring(formSlide, {
+        toValue: 0,
+        tension: 45,
+        friction: 7,
+        useNativeDriver: true
+      })])]), _reactNative.Animated.sequence([_reactNative.Animated.delay(260), _reactNative.Animated.timing(footerFade, {
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true
+      })])]).start();
+
+      // Subtle ambient emblem float
+      _reactNative.Animated.loop(_reactNative.Animated.sequence([_reactNative.Animated.timing(floatAnim, {
+        toValue: -5,
+        duration: 1800,
+        useNativeDriver: true
+      }), _reactNative.Animated.timing(floatAnim, {
+        toValue: 0,
+        duration: 1800,
+        useNativeDriver: true
+      })])).start();
+    }, [badgeScale, headerFade, headerSlide, formFade, formSlide, footerFade, floatAnim]);
     var validateForm = function validateForm() {
       var isValid = true;
       setEmailError(null);
@@ -72240,14 +72604,14 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       if (!email.trim()) {
         setEmailError('Email address is required');
         isValid = false;
-      } else if (!(0, _$$_REQUIRE(_dependencyMap[7]).isValidEmail)(email)) {
+      } else if (!(0, _$$_REQUIRE(_dependencyMap[6]).isValidEmail)(email)) {
         setEmailError('Please enter a valid email address');
         isValid = false;
       }
       if (!password) {
         setPasswordError('Password is required');
         isValid = false;
-      } else if (!(0, _$$_REQUIRE(_dependencyMap[7]).isValidPassword)(password)) {
+      } else if (!(0, _$$_REQUIRE(_dependencyMap[6]).isValidPassword)(password)) {
         setPasswordError('Password must be at least 6 characters long');
         isValid = false;
       }
@@ -72261,9 +72625,9 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       return isValid;
     };
     var handleRegister = function handleRegister() {
-      if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[8]).clearAuthError)());
+      if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[7]).clearAuthError)());
       if (!validateForm()) return;
-      dispatch((0, _$$_REQUIRE(_dependencyMap[8]).registerUser)({
+      dispatch((0, _$$_REQUIRE(_dependencyMap[7]).registerUser)({
         email: email.trim(),
         password: password
       }));
@@ -72274,10 +72638,21 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
       children: /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.ScrollView, {
         contentContainerStyle: styles.scrollContent,
         keyboardShouldPersistTaps: "handled",
-        children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.header,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-            style: styles.brandBadge,
+        children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Animated.View, {
+          style: [styles.header, {
+            opacity: headerFade,
+            transform: [{
+              translateY: headerSlide
+            }]
+          }],
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Animated.View, {
+            style: [styles.brandBadge, {
+              transform: [{
+                scale: badgeScale
+              }, {
+                translateY: floatAnim
+              }]
+            }],
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
               style: styles.brandIcon,
               children: "\u2713"
@@ -72289,24 +72664,20 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
             style: styles.subtitle,
             children: "Join TaskFlow to achieve your goals efficiently"
           })]
-        }), Boolean(error) && /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
+        }), Boolean(error) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
           style: styles.errorBanner,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
+          children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
             style: styles.errorBannerText,
             children: error
-          }), (error == null ? undefined : error.includes('Network Error')) && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-            style: styles.errorFixButton,
-            onPress: function onPress() {
-              return setServerModalVisible(true);
-            },
-            children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.errorFixButtonText,
-              children: "\u2699\uFE0F Configure Server Address"
-            })
-          })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.formCard,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[9]).CustomInput, {
+          })
+        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Animated.View, {
+          style: [styles.formCard, {
+            opacity: formFade,
+            transform: [{
+              translateY: formSlide
+            }]
+          }],
+          children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[8]).CustomInput, {
             label: "Email Address",
             placeholder: "name@example.com",
             keyboardType: "email-address",
@@ -72317,7 +72688,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               if (emailError) setEmailError(null);
             },
             error: emailError
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[9]).CustomInput, {
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[8]).CustomInput, {
             label: "Password",
             placeholder: "Minimum 6 characters",
             isPassword: true,
@@ -72327,7 +72698,7 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               if (passwordError) setPasswordError(null);
             },
             error: passwordError
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[9]).CustomInput, {
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[8]).CustomInput, {
             label: "Confirm Password",
             placeholder: "Re-enter your password",
             isPassword: true,
@@ -72337,37 +72708,22 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               if (confirmError) setConfirmError(null);
             },
             error: confirmError
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[10]).CustomButton, {
+          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[9]).CustomButton, {
             title: "Create Account",
             onPress: handleRegister,
             loading: loading,
             style: styles.submitButton
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.TouchableOpacity, {
-          style: styles.serverBar,
-          onPress: function onPress() {
-            return setServerModalVisible(true);
-          },
-          activeOpacity: 0.7,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
-            style: styles.serverBarText,
-            numberOfLines: 1,
-            children: ["\u2699\uFE0F Server: ", /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.serverBarUrl,
-              children: currentServerUrl
-            })]
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.serverBarAction,
-            children: "Change"
-          })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.footerRow,
+        }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Animated.View, {
+          style: [styles.footerRow, {
+            opacity: footerFade
+          }],
           children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
             style: styles.footerText,
             children: "Already have an account? "
           }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
             onPress: function onPress() {
-              if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[8]).clearAuthError)());
+              if (error) dispatch((0, _$$_REQUIRE(_dependencyMap[7]).clearAuthError)());
               navigation.navigate('Login');
             },
             children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
@@ -72375,14 +72731,6 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
               children: "Sign In"
             })
           })]
-        }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_$$_REQUIRE(_dependencyMap[11]).ServerSettingsModal, {
-          visible: serverModalVisible,
-          onClose: function onClose() {
-            return setServerModalVisible(false);
-          },
-          onSaved: function onSaved(newUrl) {
-            return setCurrentServerUrl(newUrl);
-          }
         })]
       })
     });
@@ -72394,478 +72742,97 @@ __d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, e
     },
     scrollContent: {
       flexGrow: 1,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[12]).spacing.xl,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[12]).spacing.xxxl,
+      paddingHorizontal: _$$_REQUIRE(_dependencyMap[10]).spacing.xl,
+      paddingVertical: _$$_REQUIRE(_dependencyMap[10]).spacing.xxxl,
       justifyContent: 'center'
     },
     header: {
       alignItems: 'center',
-      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.xxl
+      marginBottom: _$$_REQUIRE(_dependencyMap[10]).spacing.xxl
     },
     brandBadge: {
-      width: 60,
-      height: 60,
-      borderRadius: 18,
-      backgroundColor: _$$_REQUIRE(_dependencyMap[13]).colors.primary,
+      width: 68,
+      height: 68,
+      borderRadius: 22,
+      backgroundColor: _$$_REQUIRE(_dependencyMap[11]).colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.base
+      marginBottom: _$$_REQUIRE(_dependencyMap[10]).spacing.base,
+      shadowColor: _$$_REQUIRE(_dependencyMap[11]).colors.primary,
+      shadowOffset: {
+        width: 0,
+        height: 8
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 16,
+      elevation: 8
     },
     brandIcon: {
       color: '#FFFFFF',
-      fontSize: 32,
+      fontSize: 34,
       fontWeight: '800'
     },
     title: {
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.xxl,
+      fontSize: _$$_REQUIRE(_dependencyMap[10]).typography.fontSize.xxl,
       fontWeight: '800',
       color: '#0F172A',
-      textAlign: 'center'
+      textAlign: 'center',
+      letterSpacing: -0.5
     },
     subtitle: {
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.base,
+      fontSize: _$$_REQUIRE(_dependencyMap[10]).typography.fontSize.base,
       color: '#64748B',
       textAlign: 'center',
-      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.xs
+      marginTop: _$$_REQUIRE(_dependencyMap[10]).spacing.xs
     },
     errorBanner: {
       backgroundColor: '#FEE2E2',
       borderWidth: 1,
       borderColor: '#FCA5A5',
-      borderRadius: _$$_REQUIRE(_dependencyMap[12]).borderRadius.md,
-      padding: _$$_REQUIRE(_dependencyMap[12]).spacing.md,
-      marginBottom: _$$_REQUIRE(_dependencyMap[12]).spacing.base
+      borderRadius: _$$_REQUIRE(_dependencyMap[10]).borderRadius.md,
+      padding: _$$_REQUIRE(_dependencyMap[10]).spacing.md,
+      marginBottom: _$$_REQUIRE(_dependencyMap[10]).spacing.base
     },
     errorBannerText: {
       color: '#DC2626',
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.sm,
+      fontSize: _$$_REQUIRE(_dependencyMap[10]).typography.fontSize.sm,
       fontWeight: '600',
       textAlign: 'center'
     },
-    errorFixButton: {
-      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.sm,
-      backgroundColor: '#DC2626',
-      paddingVertical: _$$_REQUIRE(_dependencyMap[12]).spacing.xs + 2,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[12]).spacing.md,
-      borderRadius: _$$_REQUIRE(_dependencyMap[12]).borderRadius.sm,
-      alignSelf: 'center'
-    },
-    errorFixButtonText: {
-      color: '#FFFFFF',
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.xs,
-      fontWeight: '700'
-    },
     formCard: {
       backgroundColor: '#FFFFFF',
-      borderRadius: _$$_REQUIRE(_dependencyMap[12]).borderRadius.xl,
-      padding: _$$_REQUIRE(_dependencyMap[12]).spacing.xl,
+      borderRadius: _$$_REQUIRE(_dependencyMap[10]).borderRadius.xl,
+      padding: _$$_REQUIRE(_dependencyMap[10]).spacing.xl,
       borderWidth: 1,
       borderColor: '#E2E8F0',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 4
-      },
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 3
-    },
-    submitButton: {
-      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.md
-    },
-    serverBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: '#EEF2FF',
-      borderWidth: 1,
-      borderColor: '#C7D2FE',
-      borderRadius: _$$_REQUIRE(_dependencyMap[12]).borderRadius.md,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[12]).spacing.md,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[12]).spacing.sm,
-      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.lg
-    },
-    serverBarText: {
-      flex: 1,
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.xs,
-      color: '#4B5563',
-      fontWeight: '500',
-      marginRight: _$$_REQUIRE(_dependencyMap[12]).spacing.xs
-    },
-    serverBarUrl: {
-      color: '#4F46E5',
-      fontWeight: '700'
-    },
-    serverBarAction: {
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.xs,
-      color: '#4F46E5',
-      fontWeight: '800',
-      textTransform: 'uppercase'
-    },
-    footerRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      marginTop: _$$_REQUIRE(_dependencyMap[12]).spacing.xl
-    },
-    footerText: {
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.base,
-      color: '#64748B'
-    },
-    loginLink: {
-      fontSize: _$$_REQUIRE(_dependencyMap[12]).typography.fontSize.base,
-      fontWeight: '700',
-      color: _$$_REQUIRE(_dependencyMap[13]).colors.primary
-    }
-  });
-},827,[1,40,63,2,111,635,609,805,598,806,802,828,736,735]);
-__d(function (global, _$$_REQUIRE, _$$_IMPORT_DEFAULT, _$$_IMPORT_ALL, module, exports, _dependencyMap) {
-  var _interopRequireDefault = _$$_REQUIRE(_dependencyMap[0]);
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-  exports.ServerSettingsModal = undefined;
-  var _asyncToGenerator2 = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[1]));
-  var _slicedToArray2 = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[2]));
-  var _react = _interopRequireWildcard(_$$_REQUIRE(_dependencyMap[3]));
-  var _reactNative = _$$_REQUIRE(_dependencyMap[4]);
-  var _axios = _interopRequireDefault(_$$_REQUIRE(_dependencyMap[5]));
-  var _jsxRuntime = _$$_REQUIRE(_dependencyMap[6]);
-  function _interopRequireWildcard(e, t) { if ("function" == typeof WeakMap) var r = new WeakMap(), n = new WeakMap(); return (_interopRequireWildcard = function _interopRequireWildcard(e, t) { if (!t && e && e.__esModule) return e; var o, i, f = { __proto__: null, default: e }; if (null === e || "object" != typeof e && "function" != typeof e) return f; if (o = t ? n : r) { if (o.has(e)) return o.get(e); o.set(e, f); } for (var _t in e) "default" !== _t && {}.hasOwnProperty.call(e, _t) && ((i = (o = Object.defineProperty) && Object.getOwnPropertyDescriptor(e, _t)) && (i.get || i.set) ? o(f, _t, i) : f[_t] = e[_t]); return f; })(e, t); }
-  var ServerSettingsModal = exports.ServerSettingsModal = function ServerSettingsModal(_ref) {
-    var visible = _ref.visible,
-      onClose = _ref.onClose,
-      onSaved = _ref.onSaved;
-    var _useState = (0, _react.useState)((0, _$$_REQUIRE(_dependencyMap[7]).getApiBaseUrl)()),
-      _useState2 = (0, _slicedToArray2.default)(_useState, 2),
-      url = _useState2[0],
-      setUrl = _useState2[1];
-    var _useState3 = (0, _react.useState)(false),
-      _useState4 = (0, _slicedToArray2.default)(_useState3, 2),
-      testing = _useState4[0],
-      setTesting = _useState4[1];
-    var _useState5 = (0, _react.useState)(null),
-      _useState6 = (0, _slicedToArray2.default)(_useState5, 2),
-      testResult = _useState6[0],
-      setTestResult = _useState6[1];
-    (0, _react.useEffect)(function () {
-      if (visible) {
-        setUrl((0, _$$_REQUIRE(_dependencyMap[7]).getApiBaseUrl)());
-        setTestResult(null);
-      }
-    }, [visible]);
-    var handleTestConnection = /*#__PURE__*/function () {
-      var _ref2 = (0, _asyncToGenerator2.default)(function* () {
-        var cleanUrl = url.trim().replace(/\/+$/, '');
-        if (!cleanUrl) {
-          setTestResult({
-            success: false,
-            message: 'Please enter a server URL'
-          });
-          return;
-        }
-        setTesting(true);
-        setTestResult(null);
-        try {
-          var _res$data;
-          var res = yield _axios.default.get(`${cleanUrl}/health`, {
-            timeout: 4000
-          });
-          if (res.status === 200 && ((_res$data = res.data) == null ? undefined : _res$data.status) === 'healthy') {
-            setTestResult({
-              success: true,
-              message: 'Connected successfully! Backend is healthy.'
-            });
-          } else {
-            setTestResult({
-              success: true,
-              message: `Server replied with status ${res.status}.`
-            });
-          }
-        } catch (err) {
-          var errMsg = err.code === 'ECONNABORTED' ? 'Connection timed out. Check Wi-Fi or firewall.' : err.message || 'Cannot reach server at this address';
-          setTestResult({
-            success: false,
-            message: errMsg
-          });
-        } finally {
-          setTesting(false);
-        }
-      });
-      return function handleTestConnection() {
-        return _ref2.apply(this, arguments);
-      };
-    }();
-    var handleSave = /*#__PURE__*/function () {
-      var _ref3 = (0, _asyncToGenerator2.default)(function* () {
-        var cleanUrl = url.trim().replace(/\/+$/, '');
-        if (!cleanUrl) return;
-        yield _$$_REQUIRE(_dependencyMap[8]).storageService.saveServerUrl(cleanUrl);
-        (0, _$$_REQUIRE(_dependencyMap[7]).setApiBaseUrl)(cleanUrl);
-        if (onSaved) onSaved(cleanUrl);
-        onClose();
-      });
-      return function handleSave() {
-        return _ref3.apply(this, arguments);
-      };
-    }();
-    return /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Modal, {
-      visible: visible,
-      transparent: true,
-      animationType: "slide",
-      onRequestClose: onClose,
-      children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.KeyboardAvoidingView, {
-        behavior: _reactNative.Platform.OS === 'ios' ? 'padding' : undefined,
-        style: styles.overlay,
-        children: /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-          style: styles.container,
-          children: [/*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-            style: styles.header,
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-              style: styles.title,
-              children: "\u2699\uFE0F Server Settings"
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-              onPress: onClose,
-              hitSlop: {
-                top: 10,
-                bottom: 10,
-                left: 10,
-                right: 10
-              },
-              children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-                style: styles.closeButton,
-                children: "\u2715"
-              })
-            })]
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.description,
-            children: "Configure the backend REST API address for your device:"
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.sectionLabel,
-            children: "Quick Presets:"
-          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-            style: styles.presetsRow,
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-              style: [styles.presetChip, url === _$$_REQUIRE(_dependencyMap[7]).DEFAULT_LAN_URL && styles.presetChipActive],
-              onPress: function onPress() {
-                setUrl(_$$_REQUIRE(_dependencyMap[7]).DEFAULT_LAN_URL);
-                setTestResult(null);
-              },
-              children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-                style: [styles.presetText, url === _$$_REQUIRE(_dependencyMap[7]).DEFAULT_LAN_URL && styles.presetTextActive],
-                children: "\uD83D\uDCF6 Laptop Wi-Fi"
-              })
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-              style: [styles.presetChip, url === _$$_REQUIRE(_dependencyMap[7]).DEFAULT_EMULATOR_URL && styles.presetChipActive],
-              onPress: function onPress() {
-                setUrl(_$$_REQUIRE(_dependencyMap[7]).DEFAULT_EMULATOR_URL);
-                setTestResult(null);
-              },
-              children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-                style: [styles.presetText, url === _$$_REQUIRE(_dependencyMap[7]).DEFAULT_EMULATOR_URL && styles.presetTextActive],
-                children: "\uD83D\uDCBB Emulator"
-              })
-            })]
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-            style: styles.sectionLabel,
-            children: "Server Base URL:"
-          }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TextInput, {
-            style: styles.input,
-            value: url,
-            onChangeText: function onChangeText(text) {
-              setUrl(text);
-              if (testResult) setTestResult(null);
-            },
-            placeholder: "http://192.168.0.3:5000",
-            placeholderTextColor: "#9CA3AF",
-            autoCapitalize: "none",
-            autoCorrect: false,
-            keyboardType: "url"
-          }), testResult && /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
-            style: [styles.statusBanner, testResult.success ? styles.statusSuccess : styles.statusError],
-            children: /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.Text, {
-              style: [styles.statusText, testResult.success ? styles.statusTextSuccess : styles.statusTextError],
-              children: [testResult.success ? '✓ ' : '✕ ', " ", testResult.message]
-            })
-          }), /*#__PURE__*/(0, _jsxRuntime.jsxs)(_reactNative.View, {
-            style: styles.buttonRow,
-            children: [/*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-              style: [styles.testButton, testing && styles.buttonDisabled],
-              onPress: handleTestConnection,
-              disabled: testing,
-              children: testing ? /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.ActivityIndicator, {
-                size: "small",
-                color: "#4F46E5"
-              }) : /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-                style: styles.testButtonText,
-                children: "Test Connection"
-              })
-            }), /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.TouchableOpacity, {
-              style: styles.saveButton,
-              onPress: handleSave,
-              children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.Text, {
-                style: styles.saveButtonText,
-                children: "Save & Apply"
-              })
-            })]
-          })]
-        })
-      })
-    });
-  };
-  var styles = _reactNative.StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.55)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: _$$_REQUIRE(_dependencyMap[9]).spacing.lg
-    },
-    container: {
-      width: '100%',
-      backgroundColor: '#FFFFFF',
-      borderRadius: _$$_REQUIRE(_dependencyMap[9]).borderRadius.lg,
-      padding: _$$_REQUIRE(_dependencyMap[9]).spacing.xl,
-      shadowColor: '#000',
+      shadowColor: '#64748B',
       shadowOffset: {
         width: 0,
         height: 10
       },
-      shadowOpacity: 0.25,
+      shadowOpacity: 0.08,
       shadowRadius: 20,
-      elevation: 10
+      elevation: 4
     },
-    header: {
+    submitButton: {
+      marginTop: _$$_REQUIRE(_dependencyMap[10]).spacing.sm
+    },
+    footerRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: _$$_REQUIRE(_dependencyMap[9]).spacing.xs
+      justifyContent: 'center',
+      marginTop: _$$_REQUIRE(_dependencyMap[10]).spacing.xxl
     },
-    title: {
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.lg,
+    footerText: {
+      fontSize: _$$_REQUIRE(_dependencyMap[10]).typography.fontSize.base,
+      color: '#64748B'
+    },
+    loginLink: {
+      fontSize: _$$_REQUIRE(_dependencyMap[10]).typography.fontSize.base,
       fontWeight: '700',
-      color: '#111827'
-    },
-    closeButton: {
-      fontSize: 18,
-      color: '#6B7280',
-      fontWeight: '600',
-      padding: _$$_REQUIRE(_dependencyMap[9]).spacing.xs
-    },
-    description: {
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.sm,
-      color: '#6B7280',
-      marginBottom: _$$_REQUIRE(_dependencyMap[9]).spacing.md
-    },
-    sectionLabel: {
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.xs,
-      fontWeight: '600',
-      color: '#374151',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginBottom: _$$_REQUIRE(_dependencyMap[9]).spacing.xs
-    },
-    presetsRow: {
-      flexDirection: 'row',
-      gap: _$$_REQUIRE(_dependencyMap[9]).spacing.sm,
-      marginBottom: _$$_REQUIRE(_dependencyMap[9]).spacing.md
-    },
-    presetChip: {
-      flex: 1,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[9]).spacing.sm,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[9]).spacing.md,
-      borderRadius: _$$_REQUIRE(_dependencyMap[9]).borderRadius.md,
-      borderWidth: 1,
-      borderColor: '#E5E7EB',
-      backgroundColor: '#F9FAFB',
-      alignItems: 'center'
-    },
-    presetChipActive: {
-      borderColor: '#4F46E5',
-      backgroundColor: '#EEF2FF'
-    },
-    presetText: {
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.xs,
-      fontWeight: '500',
-      color: '#4B5563'
-    },
-    presetTextActive: {
-      color: '#4F46E5',
-      fontWeight: '700'
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: '#D1D5DB',
-      borderRadius: _$$_REQUIRE(_dependencyMap[9]).borderRadius.md,
-      paddingHorizontal: _$$_REQUIRE(_dependencyMap[9]).spacing.md,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[9]).spacing.sm + 2,
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.sm,
-      color: '#111827',
-      backgroundColor: '#F9FAFB',
-      marginBottom: _$$_REQUIRE(_dependencyMap[9]).spacing.md
-    },
-    statusBanner: {
-      padding: _$$_REQUIRE(_dependencyMap[9]).spacing.sm,
-      borderRadius: _$$_REQUIRE(_dependencyMap[9]).borderRadius.sm,
-      marginBottom: _$$_REQUIRE(_dependencyMap[9]).spacing.md
-    },
-    statusSuccess: {
-      backgroundColor: '#ECFDF5',
-      borderWidth: 1,
-      borderColor: '#A7F3D0'
-    },
-    statusError: {
-      backgroundColor: '#FEF2F2',
-      borderWidth: 1,
-      borderColor: '#FECACA'
-    },
-    statusText: {
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.xs,
-      fontWeight: '500'
-    },
-    statusTextSuccess: {
-      color: '#065F46'
-    },
-    statusTextError: {
-      color: '#991B1B'
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      gap: _$$_REQUIRE(_dependencyMap[9]).spacing.sm,
-      marginTop: _$$_REQUIRE(_dependencyMap[9]).spacing.xs
-    },
-    testButton: {
-      flex: 1,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[9]).spacing.md,
-      borderRadius: _$$_REQUIRE(_dependencyMap[9]).borderRadius.md,
-      borderWidth: 1,
-      borderColor: '#4F46E5',
-      backgroundColor: '#FFFFFF',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    testButtonText: {
-      color: '#4F46E5',
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.sm,
-      fontWeight: '600'
-    },
-    saveButton: {
-      flex: 1,
-      paddingVertical: _$$_REQUIRE(_dependencyMap[9]).spacing.md,
-      borderRadius: _$$_REQUIRE(_dependencyMap[9]).borderRadius.md,
-      backgroundColor: '#4F46E5',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    saveButtonText: {
-      color: '#FFFFFF',
-      fontSize: _$$_REQUIRE(_dependencyMap[9]).typography.fontSize.sm,
-      fontWeight: '700'
-    },
-    buttonDisabled: {
-      opacity: 0.6
+      color: _$$_REQUIRE(_dependencyMap[11]).colors.primary
     }
   });
-},828,[1,105,40,63,2,610,111,609,615,736]);
+},827,[1,40,63,2,111,635,805,598,806,802,736,735]);
 __r(67);
 __r(0);
 //# sourceMappingURL=http://localhost:8081/index.map?platform=android&dev=false
