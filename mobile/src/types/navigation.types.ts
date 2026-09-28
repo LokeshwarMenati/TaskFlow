@@ -10,6 +10,7 @@ export type MainStackParamList = {
   TaskList: undefined;
   AddEditTask: { task?: Task; isEditing?: boolean };
   TaskDetail: { taskId: string };
+  Profile: undefined;
 };
 
 export type RootStackParamList = {

@@ -149,6 +149,11 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
     }).start();
   };
 
+  const userInitials = useMemo(
+    () => (user?.email || 'TF').split('@')[0].slice(0, 2).toUpperCase(),
+    [user]
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Header */}
@@ -158,35 +163,51 @@ export const TaskListScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.userEmail}>{user?.email || 'My Workspace'}</Text>
         </View>
         <TouchableOpacity
-          onPress={handleLogout}
-          style={styles.logoutButton}
+          onPress={() => navigation.navigate('Profile')}
+          style={styles.profileHeaderButton}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.8}
         >
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <View style={styles.headerAvatar}>
+            <Text style={styles.headerAvatarText}>{userInitials}</Text>
+          </View>
+          <Text style={styles.headerSettingsGear}>⚙️</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Quick Statistics Banner with Animated Progress Bar */}
+      {/* Quick Statistics Banner with Interactive Taps & Animated Progress Bar */}
       <View style={styles.statsCard}>
         <View style={styles.statsBanner}>
-          <View style={styles.statItem}>
+          <TouchableOpacity
+            style={[styles.statItem, filters.status === 'pending' && styles.statItemActive]}
+            onPress={() => dispatch(setFilters({ status: filters.status === 'pending' ? 'all' : 'pending' }))}
+            activeOpacity={0.7}
+          >
             <Text style={styles.statNumber}>{pendingCount}</Text>
             <Text style={styles.statLabel}>Pending</Text>
-          </View>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <View style={styles.statItem}>
+          <TouchableOpacity
+            style={[styles.statItem, filters.status === 'completed' && styles.statItemActive]}
+            onPress={() => dispatch(setFilters({ status: filters.status === 'completed' ? 'all' : 'completed' }))}
+            activeOpacity={0.7}
+          >
             <Text style={[styles.statNumber, { color: colors.success }]}>
               {completedCount}
             </Text>
             <Text style={styles.statLabel}>Completed</Text>
-          </View>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <View style={styles.statItem}>
+          <TouchableOpacity
+            style={[styles.statItem, filters.status === 'all' && styles.statItemActive]}
+            onPress={() => dispatch(setFilters({ status: 'all' }))}
+            activeOpacity={0.7}
+          >
             <Text style={[styles.statNumber, { color: '#0F172A' }]}>
               {totalCount}
             </Text>
             <Text style={styles.statLabel}>Total</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Animated Completion Progress Bar */}
@@ -371,16 +392,38 @@ const styles = StyleSheet.create({
     marginTop: 1,
     fontWeight: '500',
   },
-  logoutButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: borderRadius.full,
+  profileHeaderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F1F5F9',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  logoutText: {
-    fontSize: typography.fontSize.xs,
-    fontWeight: '600',
-    color: '#475569',
+  headerAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  headerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  headerSettingsGear: {
+    fontSize: 14,
+  },
+  statItemActive: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: borderRadius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
   statsCard: {
     backgroundColor: '#FFFFFF',

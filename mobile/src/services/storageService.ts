@@ -242,6 +242,24 @@ export const storageService = {
       console.error('[Storage] Error saving local users:', e);
     }
   },
+
+  async resetDemoTasks(): Promise<any[]> {
+    try {
+      await AsyncStorage.removeItem('@taskflow_local_tasks');
+      return await this.getLocalTasks();
+    } catch (e) {
+      console.error('[Storage] Error resetting demo tasks:', e);
+      return [];
+    }
+  },
+
+  async clearAllLocalTasks(): Promise<void> {
+    try {
+      await AsyncStorage.setItem('@taskflow_local_tasks', JSON.stringify([]));
+    } catch (e) {
+      console.error('[Storage] Error clearing local tasks:', e);
+    }
+  },
 };
 
 

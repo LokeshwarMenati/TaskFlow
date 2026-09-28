@@ -4,6 +4,7 @@ import { MainStackParamList } from '../types/navigation.types';
 import { TaskListScreen } from '../screens/tasks/TaskListScreen';
 import { AddEditTaskScreen } from '../screens/tasks/AddEditTaskScreen';
 import { TaskDetailScreen } from '../screens/tasks/TaskDetailScreen';
+import { ProfileScreen } from '../screens/profile/ProfileScreen';
 import { colors } from '../theme/colors';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -40,6 +41,11 @@ export const MainNavigator: React.FC = () => {
         name="TaskDetail"
         component={TaskDetailScreen}
         options={{ title: 'Task Details' }}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: 'Profile & Settings' }}
       />
     </Stack.Navigator>
   );
