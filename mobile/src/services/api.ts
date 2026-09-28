@@ -2,28 +2,44 @@ import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 
 import { Platform } from 'react-native';
 import { storageService } from './storageService';
 
-// Determine default host based on runtime platform
-// Android Emulator maps host machine localhost to 10.0.2.2
-const DEFAULT_ANDROID_URL = 'http://10.0.2.2:5000';
-const DEFAULT_IOS_URL = 'http://localhost:5000';
+// Network hosts configuration:
+// 192.168.0.3: Host laptop's Wi-Fi LAN IP (Accessible to physical Android phones on the same Wi-Fi)
+// 10.0.2.2: Android Emulator special loopback alias
+export const DEFAULT_LAN_URL = 'http://192.168.0.3:5000';
+export const DEFAULT_EMULATOR_URL = 'http://10.0.2.2:5000';
+export const DEFAULT_IOS_URL = 'http://localhost:5000';
 
-let currentBaseUrl = Platform.OS === 'android' ? DEFAULT_ANDROID_URL : DEFAULT_IOS_URL;
+let currentBaseUrl = DEFAULT_LAN_URL;
 
 export const setApiBaseUrl = (newUrl: string): void => {
-  currentBaseUrl = newUrl;
-  apiClient.defaults.baseURL = newUrl;
+  const cleanUrl = newUrl.trim().replace(/\/+$/, '');
+  currentBaseUrl = cleanUrl;
+  apiClient.defaults.baseURL = cleanUrl;
 };
 
 export const getApiBaseUrl = (): string => currentBaseUrl;
 
+export const initApiBaseUrl = async (): Promise<string> => {
+  try {
+    const savedUrl = await storageService.getServerUrl();
+    if (savedUrl && savedUrl.trim()) {
+      setApiBaseUrl(savedUrl);
+    }
+  } catch (e) {
+    console.warn('[API Client] Could not read saved server URL:', e);
+  }
+  return currentBaseUrl;
+};
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: currentBaseUrl,
-  timeout: 15000,
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
+
 
 // Listener for unauthorized (401) events to trigger global logout
 type UnauthorizedCallback = () => void;
@@ -66,6 +82,15 @@ apiClient.interceptors.response.use(
       if (onUnauthorizedCallback) {
         onUnauthorizedCallback();
       }
+    }
+
+    // Enhance Network Error with actionable server details
+    if (!error.response && (error.message === 'Network Error' || error.code === 'ERR_NETWORK')) {
+      const customError = new Error(
+        `Network Error: Cannot connect to server at ${currentBaseUrl}. Please ensure your mobile phone is connected to the same Wi-Fi as your computer, or tap 'Server Settings' to change the address.`
+      );
+      (customError as any).isNetworkError = true;
+      return Promise.reject(customError);
     }
 
     return Promise.reject(error);

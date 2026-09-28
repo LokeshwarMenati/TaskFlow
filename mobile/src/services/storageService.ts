@@ -85,4 +85,23 @@ export const storageService = {
       console.error('[Storage] Error clearing auth storage:', e);
     }
   },
+
+  // Custom Server Base URL
+  async saveServerUrl(url: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem('@taskflow_server_url', url);
+    } catch (e) {
+      console.error('[Storage] Error saving server url:', e);
+    }
+  },
+
+  async getServerUrl(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem('@taskflow_server_url');
+    } catch (e) {
+      console.error('[Storage] Error getting server url:', e);
+      return null;
+    }
+  },
 };
+

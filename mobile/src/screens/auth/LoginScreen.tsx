@@ -18,6 +18,8 @@ import { CustomButton } from '../../components/CustomButton';
 import { colors } from '../../theme/colors';
 import { borderRadius, spacing, typography } from '../../theme/tokens';
 import { isValidEmail } from '../../utils/validation';
+import { ServerSettingsModal } from '../../components/ServerSettingsModal';
+import { getApiBaseUrl } from '../../services/api';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -31,6 +33,9 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const [serverModalVisible, setServerModalVisible] = useState(false);
+  const [currentServerUrl, setCurrentServerUrl] = useState(getApiBaseUrl());
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -83,6 +88,14 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         {Boolean(error) && (
           <View style={styles.errorBanner}>
             <Text style={styles.errorBannerText}>{error}</Text>
+            {error?.includes('Network Error') && (
+              <TouchableOpacity
+                style={styles.errorFixButton}
+                onPress={() => setServerModalVisible(true)}
+              >
+                <Text style={styles.errorFixButtonText}>⚙️ Configure Server Address</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -134,6 +147,18 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
+        {/* Server Connection Bar */}
+        <TouchableOpacity
+          style={styles.serverBar}
+          onPress={() => setServerModalVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.serverBarText} numberOfLines={1}>
+            ⚙️ Server: <Text style={styles.serverBarUrl}>{currentServerUrl}</Text>
+          </Text>
+          <Text style={styles.serverBarAction}>Change</Text>
+        </TouchableOpacity>
+
         {/* Navigation to Register */}
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Don't have an account? </Text>
@@ -146,6 +171,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.registerLink}>Create Account</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Server Settings Modal */}
+        <ServerSettingsModal
+          visible={serverModalVisible}
+          onClose={() => setServerModalVisible(false)}
+          onSaved={(newUrl) => setCurrentServerUrl(newUrl)}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -206,6 +238,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  errorFixButton: {
+    marginTop: spacing.sm,
+    backgroundColor: '#DC2626',
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+    alignSelf: 'center',
+  },
+  errorFixButtonText: {
+    color: '#FFFFFF',
+    fontSize: typography.fontSize.xs,
+    fontWeight: '700',
+  },
   formCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: borderRadius.xl,
@@ -252,10 +297,39 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.xs,
   },
+  serverBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  serverBarText: {
+    flex: 1,
+    fontSize: typography.fontSize.xs,
+    color: '#4B5563',
+    fontWeight: '500',
+    marginRight: spacing.xs,
+  },
+  serverBarUrl: {
+    color: '#4F46E5',
+    fontWeight: '700',
+  },
+  serverBarAction: {
+    fontSize: typography.fontSize.xs,
+    color: '#4F46E5',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
   },
   footerText: {
     fontSize: typography.fontSize.base,

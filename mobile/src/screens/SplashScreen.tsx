@@ -5,12 +5,18 @@ import { restoreSession } from '../store/slices/authSlice';
 import { colors } from '../theme/colors';
 import { spacing, typography } from '../theme/tokens';
 
+import { initApiBaseUrl } from '../services/api';
+
 export const SplashScreen: React.FC = () => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // Attempt to restore persistent session from AsyncStorage
-    dispatch(restoreSession());
+    // Attempt to restore saved server URL and persistent session
+    const initApp = async () => {
+      await initApiBaseUrl();
+      dispatch(restoreSession());
+    };
+    initApp();
   }, [dispatch]);
 
   return (
