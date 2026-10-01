@@ -329,7 +329,6 @@ Assignment/
 ├── .gitignore                           # Git ignore rules
 └── README.md                            # Comprehensive project guide
 ```
-
 ---
 
 ## ⚡ Prerequisites
