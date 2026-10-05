@@ -32,6 +32,7 @@ The project consists of a decoupled architecture with a Node.js/Express TypeScri
 13. [Postman Collection](#-postman-collection)
 14. [Testing & Verification](#-testing--verification)
 15. [Troubleshooting](#-troubleshooting)
+16. [Vercel Cloud Deployment](#-cloud-deployment-vercel)
 
 ---
 
@@ -590,6 +591,22 @@ npm test
 | Mobile: Physical device cannot reach backend | Host machine is not exposing port or firewall blocked | Run `adb reverse tcp:5000 tcp:5000` or change API base URL to workstation IP. |
 | Backend: MongoDB connection refused | Local mongod is not started | Start MongoDB service (`net start MongoDB` or `mongod`) or configure remote URI in `.env`. |
 | Mobile: Metro bundler caching issues | Stale cache from previous run | Run `npx react-native start --reset-cache`. |
+
+---
+
+## ☁️ Cloud Deployment (Vercel)
+
+The TaskFlow backend is configured for 1-click serverless deployment on [Vercel](https://vercel.com/):
+
+- **Serverless Entry Handler**: [`backend/api/index.ts`](./backend/api/index.ts)
+- **Vercel Config & Rewrites**: [`backend/vercel.json`](./backend/vercel.json)
+- **Comprehensive Guide**: See [`docs/VERCEL_DEPLOYMENT.md`](./docs/VERCEL_DEPLOYMENT.md) for step-by-step instructions.
+
+### Quick Deploy Checklist:
+1. Push project to GitHub.
+2. Import repository into Vercel and set **Root Directory** to `backend`.
+3. Add Environment Variables: `MONGODB_URI` (MongoDB Atlas), `JWT_SECRET`, `NODE_ENV=production`, `CORS_ORIGIN=*`.
+4. Deploy and paste the Vercel URL into the TaskFlow Mobile App's **Server Settings** modal.
 
 ---
 

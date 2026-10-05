@@ -48,4 +48,5 @@ mobile/ios/build/
 *.keystore
 local.properties
 .snapshots/
+.vercel/
 
