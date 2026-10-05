@@ -50,3 +50,5 @@ local.properties
 .snapshots/
 .vercel/
 
+.vercel
+.env*

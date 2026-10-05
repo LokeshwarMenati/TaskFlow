@@ -1,0 +1,10 @@
+dist/
+mobile/
+node_modules/
+.git/
+.snapshots/
+*.mp4
+*.apk
+*.zip
+logs/
+coverage/
